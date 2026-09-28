@@ -369,7 +369,13 @@ class DeviceManager(QObject):
                     if len(buffer.payload.components) != 1:
                         raise ValueError("Only single-component images are supported")
                     image = self._to_image(buffer.payload.components[0])
-                    self._next_preview[index] = now + self._preview_period
+                    # Keep the preview cadence instead of restarting the wait
+                    # after each delivery. Otherwise arrival jitter at the FPS
+                    # limit discards alternating frames. Clamp after a stall
+                    # so missed intervals never accumulate a catch-up burst.
+                    self._next_preview[index] = max(
+                        self._next_preview[index] + self._preview_period, now
+                    )
                 self.frame_received.emit(index, image, self._camera_fps[index])
             now = perf_counter()
             elapsed = now - self._fps_start
