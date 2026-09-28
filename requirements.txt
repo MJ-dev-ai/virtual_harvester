@@ -1,0 +1,5 @@
+# Versions installed in mvs (Python 3.14.7).
+PySide6==6.11.2
+harvesters==1.4.3
+genicam==1.6.0
+numpy==2.5.3

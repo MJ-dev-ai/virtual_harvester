@@ -1,0 +1,1049 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWidget</class>
+ <widget class="QWidget" name="MainWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1440</width>
+    <height>900</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Camera Manager</string>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>1040</width>
+    <height>600</height>
+   </size>
+  </property>
+  <layout class="QHBoxLayout" name="mainLayout" stretch="1,0">
+   <property name="spacing">
+    <number>12</number>
+   </property>
+   <property name="leftMargin">
+    <number>12</number>
+   </property>
+   <property name="topMargin">
+    <number>12</number>
+   </property>
+   <property name="rightMargin">
+    <number>12</number>
+   </property>
+   <property name="bottomMargin">
+    <number>12</number>
+   </property>
+   <item>
+    <widget class="QGroupBox" name="groupPreviews">
+     <property name="title">
+      <string>Camera Previews</string>
+     </property>
+     <layout class="QGridLayout" name="previewsLayout" rowstretch="1,1,1" columnstretch="1,1,1,1">
+      <property name="horizontalSpacing">
+       <number>8</number>
+      </property>
+      <property name="verticalSpacing">
+       <number>8</number>
+      </property>
+      <item row="0" column="0">
+       <widget class="QGroupBox" name="groupCamera01">
+        <property name="title">
+         <string>Camera 01</string>
+        </property>
+        <layout class="QVBoxLayout" name="cameraLayout01">
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>6</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="labelCamera01">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+             <horstretch>1</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>128</width>
+             <height>72</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+           </property>
+           <property name="text">
+            <string>No signal</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="scaledContents">
+            <bool>false</bool>
+           </property>
+           <property name="accessibleName">
+            <string>Camera 01 preview</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QGroupBox" name="groupCamera02">
+        <property name="title">
+         <string>Camera 02</string>
+        </property>
+        <layout class="QVBoxLayout" name="cameraLayout02">
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>6</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="labelCamera02">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+             <horstretch>1</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>128</width>
+             <height>72</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+           </property>
+           <property name="text">
+            <string>No signal</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="scaledContents">
+            <bool>false</bool>
+           </property>
+           <property name="accessibleName">
+            <string>Camera 02 preview</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QGroupBox" name="groupCamera03">
+        <property name="title">
+         <string>Camera 03</string>
+        </property>
+        <layout class="QVBoxLayout" name="cameraLayout03">
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>6</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="labelCamera03">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+             <horstretch>1</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>128</width>
+             <height>72</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+           </property>
+           <property name="text">
+            <string>No signal</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="scaledContents">
+            <bool>false</bool>
+           </property>
+           <property name="accessibleName">
+            <string>Camera 03 preview</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QGroupBox" name="groupCamera04">
+        <property name="title">
+         <string>Camera 04</string>
+        </property>
+        <layout class="QVBoxLayout" name="cameraLayout04">
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>6</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="labelCamera04">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+             <horstretch>1</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>128</width>
+             <height>72</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+           </property>
+           <property name="text">
+            <string>No signal</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="scaledContents">
+            <bool>false</bool>
+           </property>
+           <property name="accessibleName">
+            <string>Camera 04 preview</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QGroupBox" name="groupCamera05">
+        <property name="title">
+         <string>Camera 05</string>
+        </property>
+        <layout class="QVBoxLayout" name="cameraLayout05">
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>6</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="labelCamera05">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+             <horstretch>1</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>128</width>
+             <height>72</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+           </property>
+           <property name="text">
+            <string>No signal</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="scaledContents">
+            <bool>false</bool>
+           </property>
+           <property name="accessibleName">
+            <string>Camera 05 preview</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QGroupBox" name="groupCamera06">
+        <property name="title">
+         <string>Camera 06</string>
+        </property>
+        <layout class="QVBoxLayout" name="cameraLayout06">
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>6</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="labelCamera06">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+             <horstretch>1</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>128</width>
+             <height>72</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+           </property>
+           <property name="text">
+            <string>No signal</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="scaledContents">
+            <bool>false</bool>
+           </property>
+           <property name="accessibleName">
+            <string>Camera 06 preview</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QGroupBox" name="groupCamera07">
+        <property name="title">
+         <string>Camera 07</string>
+        </property>
+        <layout class="QVBoxLayout" name="cameraLayout07">
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>6</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="labelCamera07">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+             <horstretch>1</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>128</width>
+             <height>72</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+           </property>
+           <property name="text">
+            <string>No signal</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="scaledContents">
+            <bool>false</bool>
+           </property>
+           <property name="accessibleName">
+            <string>Camera 07 preview</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QGroupBox" name="groupCamera08">
+        <property name="title">
+         <string>Camera 08</string>
+        </property>
+        <layout class="QVBoxLayout" name="cameraLayout08">
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>6</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="labelCamera08">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+             <horstretch>1</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>128</width>
+             <height>72</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+           </property>
+           <property name="text">
+            <string>No signal</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="scaledContents">
+            <bool>false</bool>
+           </property>
+           <property name="accessibleName">
+            <string>Camera 08 preview</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QGroupBox" name="groupCamera09">
+        <property name="title">
+         <string>Camera 09</string>
+        </property>
+        <layout class="QVBoxLayout" name="cameraLayout09">
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>6</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="labelCamera09">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+             <horstretch>1</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>128</width>
+             <height>72</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+           </property>
+           <property name="text">
+            <string>No signal</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="scaledContents">
+            <bool>false</bool>
+           </property>
+           <property name="accessibleName">
+            <string>Camera 09 preview</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QGroupBox" name="groupCamera10">
+        <property name="title">
+         <string>Camera 10</string>
+        </property>
+        <layout class="QVBoxLayout" name="cameraLayout10">
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>6</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="labelCamera10">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+             <horstretch>1</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>128</width>
+             <height>72</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+           </property>
+           <property name="text">
+            <string>No signal</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="scaledContents">
+            <bool>false</bool>
+           </property>
+           <property name="accessibleName">
+            <string>Camera 10 preview</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QGroupBox" name="groupCamera11">
+        <property name="title">
+         <string>Camera 11</string>
+        </property>
+        <layout class="QVBoxLayout" name="cameraLayout11">
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>6</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="labelCamera11">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+             <horstretch>1</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>128</width>
+             <height>72</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+           </property>
+           <property name="text">
+            <string>No signal</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="scaledContents">
+            <bool>false</bool>
+           </property>
+           <property name="accessibleName">
+            <string>Camera 11 preview</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="2" column="3">
+       <widget class="QGroupBox" name="groupCamera12">
+        <property name="title">
+         <string>Camera 12</string>
+        </property>
+        <layout class="QVBoxLayout" name="cameraLayout12">
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>6</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="labelCamera12">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+             <horstretch>1</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>128</width>
+             <height>72</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+           </property>
+           <property name="text">
+            <string>No signal</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="scaledContents">
+            <bool>false</bool>
+           </property>
+           <property name="accessibleName">
+            <string>Camera 12 preview</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QScrollArea" name="scrollControlPanel">
+     <property name="minimumSize">
+      <size>
+       <width>360</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>360</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
+     </property>
+     <property name="widgetResizable">
+      <bool>true</bool>
+     </property>
+     <property name="horizontalScrollBarPolicy">
+      <enum>Qt::ScrollBarAlwaysOff</enum>
+     </property>
+     <property name="verticalScrollBarPolicy">
+      <enum>Qt::ScrollBarAsNeeded</enum>
+     </property>
+     <widget class="QWidget" name="controlPanelContents">
+      <layout class="QVBoxLayout" name="controlPanelLayout">
+       <property name="spacing">
+        <number>10</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>4</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QGroupBox" name="groupSource">
+         <property name="title">
+          <string>Device Discovery</string>
+         </property>
+         <layout class="QGridLayout" name="sourceLayout">
+          <item row="0" column="0">
+           <widget class="QLabel" name="labelMode">
+            <property name="text">
+             <string>Mode</string>
+            </property>
+            <property name="buddy">
+             <cstring>comboMode</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="comboMode">
+            <property name="toolTip">
+             <string>Select a virtual or hardware GenTL producer.</string>
+            </property>
+            <item>
+             <property name="text">
+              <string>Virtual</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Hardware</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="1" column="0" colspan="2">
+           <widget class="QPushButton" name="buttonSearch">
+            <property name="text">
+             <string>Search</string>
+            </property>
+            <property name="toolTip">
+             <string>Search using the default CTI for the selected mode.</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupDevices">
+         <property name="title">
+          <string>Frame Grabbers / Cameras</string>
+         </property>
+         <layout class="QVBoxLayout" name="devicesLayout">
+          <item>
+           <widget class="QTreeWidget" name="treeDevices">
+            <property name="alternatingRowColors">
+             <bool>true</bool>
+            </property>
+            <property name="editTriggers">
+             <set>QAbstractItemView::NoEditTriggers</set>
+            </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::SingleSelection</enum>
+            </property>
+            <property name="selectionBehavior">
+             <enum>QAbstractItemView::SelectRows</enum>
+            </property>
+            <property name="uniformRowHeights">
+             <bool>true</bool>
+            </property>
+            <property name="allColumnsShowFocus">
+             <bool>true</bool>
+            </property>
+            <property name="accessibleName">
+             <string>Discovered frame grabbers and cameras</string>
+            </property>
+            <column>
+             <property name="text">
+              <string>Device</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>ID</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Serial number</string>
+             </property>
+            </column>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>170</height>
+             </size>
+            </property>
+            <property name="horizontalScrollBarPolicy">
+             <enum>Qt::ScrollBarAlwaysOff</enum>
+            </property>
+            <property name="textElideMode">
+             <enum>Qt::ElideRight</enum>
+            </property>
+            <attribute name="headerDefaultSectionSize">
+             <number>65</number>
+            </attribute>
+            <attribute name="headerMinimumSectionSize">
+             <number>35</number>
+            </attribute>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="labelDeviceCount">
+            <property name="text">
+             <string>0 frame grabbers · 0 cameras</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupControls">
+         <property name="title">
+          <string>Acquisition</string>
+         </property>
+         <layout class="QGridLayout" name="actionsLayout">
+          <item row="0" column="0">
+           <widget class="QPushButton" name="buttonConnect">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Connect</string>
+            </property>
+            <property name="toolTip">
+             <string>Connect to the selected camera.</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QPushButton" name="buttonDisconnect">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Disconnect</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QPushButton" name="buttonStart">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Start</string>
+            </property>
+            <property name="toolTip">
+             <string>Start acquisition on the connected camera.</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QPushButton" name="buttonStop">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Stop</string>
+            </property>
+            <property name="toolTip">
+             <string>Stop acquisition.</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupState">
+         <property name="title">
+          <string>Current State</string>
+         </property>
+         <layout class="QGridLayout" name="stateLayout">
+          <item row="0" column="0">
+           <widget class="QLabel" name="labelStateTitle">
+            <property name="text">
+             <string>State</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLabel" name="labelState">
+            <property name="font">
+             <font>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>Disconnected</string>
+            </property>
+            <property name="accessibleName">
+             <string>Current camera state</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0" colspan="2">
+           <widget class="QLabel" name="labelSelectedTitle">
+            <property name="text">
+             <string>Selected camera</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0" colspan="2">
+           <widget class="QLabel" name="labelSelectedDevice">
+            <property name="text">
+             <string>—</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="textInteractionFlags">
+             <set>Qt::TextSelectableByMouse</set>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="labelFpsTitle">
+            <property name="text">
+             <string>FPS</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLabel" name="labelFps">
+            <property name="text">
+             <string>0.0 FPS</string>
+            </property>
+            <property name="accessibleName">
+             <string>Frame rate</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupLog">
+         <property name="title">
+          <string>Log</string>
+         </property>
+         <layout class="QVBoxLayout" name="logLayout">
+          <item>
+           <widget class="QPlainTextEdit" name="editLog">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+            <property name="maximumBlockCount">
+             <number>2000</number>
+            </property>
+            <property name="placeholderText">
+             <string>Discovery, connection, acquisition and error messages appear here.</string>
+            </property>
+            <property name="accessibleName">
+             <string>Camera activity log</string>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>150</height>
+             </size>
+            </property>
+            <property name="horizontalScrollBarPolicy">
+             <enum>Qt::ScrollBarAlwaysOff</enum>
+            </property>
+            <property name="lineWrapMode">
+             <enum>QPlainTextEdit::WidgetWidth</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="logActionsLayout">
+            <item>
+             <spacer name="logSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="buttonClearLog">
+              <property name="text">
+               <string>Clear Log</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <tabstops>
+  <tabstop>comboMode</tabstop>
+  <tabstop>buttonSearch</tabstop>
+  <tabstop>treeDevices</tabstop>
+  <tabstop>buttonConnect</tabstop>
+  <tabstop>buttonDisconnect</tabstop>
+  <tabstop>buttonStart</tabstop>
+  <tabstop>buttonStop</tabstop>
+  <tabstop>editLog</tabstop>
+  <tabstop>buttonClearLog</tabstop>
+ </tabstops>
+ <resources />
+ <connections />
+</ui>

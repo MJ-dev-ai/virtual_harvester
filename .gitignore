@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local environments and secrets
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Build output
+build/
+dist/
+*.o
+*.obj
+*.cti.build
+/native/virtualfg/exports.inc
+
+# Runtime output
+/outputs/
+*.log
+
+# Editors and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Keep the runtime CTI and editable topology in Git.
+/externals/virtualfg/*
+!/externals/virtualfg/VirtualFG.cti
+!/externals/virtualfg/virtualfg.json
+
+# User Docs
+commit_message.md

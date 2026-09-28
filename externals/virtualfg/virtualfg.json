@@ -1,0 +1,32 @@
+
+{
+  "framegrabbers": [
+    {
+      "id": "VFG-0001",
+      "cameras": [
+        { "id": "VCAM-0001", "serial_number": "VC000001" },
+        { "id": "VCAM-0002", "serial_number": "VC000002" },
+        { "id": "VCAM-0003", "serial_number": "VC000003" },
+        { "id": "VCAM-0004", "serial_number": "VC000004" }
+      ]
+    },
+    {
+      "id": "VFG-0002",
+      "cameras": [
+        { "id": "VCAM-0005", "serial_number": "VC000005" },
+        { "id": "VCAM-0006", "serial_number": "VC000006" },
+        { "id": "VCAM-0007", "serial_number": "VC000007" },
+        { "id": "VCAM-0008", "serial_number": "VC000008" }
+      ]
+    },
+    {
+      "id": "VFG-0003",
+      "cameras": [
+        { "id": "VCAM-0009", "serial_number": "VC000009" },
+        { "id": "VCAM-0010", "serial_number": "VC000010" },
+        { "id": "VCAM-0011", "serial_number": "VC000011" },
+        { "id": "VCAM-0012", "serial_number": "VC000012" }
+      ]
+    }
+  ]
+}
