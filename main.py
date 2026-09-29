@@ -51,6 +51,11 @@ class ApplicationController(QObject):
         self.manager.settings_apply_finished.connect(
             self._settings_apply_finished, Qt.QueuedConnection,
         )
+        self.settings_dialog.preview_overlap_requested.connect(
+            self.manager.set_preview_overlap, Qt.QueuedConnection,
+        )
+        self.manager.preview_layout_changed.connect(window.on_preview_layout_changed)
+        self.manager.preview_layout_changed.connect(self.settings_dialog.on_preview_layout_changed)
         self.shutdown_requested.connect(self.manager.shutdown, Qt.QueuedConnection)
 
         self.manager.search_finished.connect(window.on_search_finished)

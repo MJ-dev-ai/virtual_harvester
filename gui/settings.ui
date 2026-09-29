@@ -25,7 +25,7 @@
   <property name="windowTitle">
    <string>Camera Settings</string>
   </property>
-  <layout class="QVBoxLayout" name="dialogLayout" stretch="0,1,0">
+  <layout class="QVBoxLayout" name="dialogLayout" stretch="0,1,0,0">
    <property name="spacing">
     <number>12</number>
    </property>
@@ -908,6 +908,12 @@
        </item>
       </layout>
      </widget>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="checkPreviewOverlap">
+     <property name="text"><string>Overlap Crop (Preview)</string></property>
+     <property name="toolTip"><string>Remove overlap using camera positions in config/settings.py. Changes apply immediately.</string></property>
     </widget>
    </item>
    <item>

@@ -25,6 +25,7 @@
 #include <vector>
 
 namespace vfg {
+#include "plate_texture.inc"
 using namespace GenTL;
 using Clock = std::chrono::steady_clock;
 using Lock = std::unique_lock<std::mutex>;
@@ -174,11 +175,19 @@ std::string xml_escape(const std::string& value) {
     }
     return out;
 }
+struct ObjectMask {
+    uint32_t width = 0, height = 0;
+    std::vector<uint8_t> mono, rgb;
+};
 struct Scene {
     uint32_t width = 0, height = 0, columns = 4, rows = 3;
-    uint32_t tile_width = 640, tile_height = 480;
+    uint32_t tile_width = 640, tile_height = 640;
     int step = 3;
-    uint32_t circles = 2, circle_radius = 0;
+    double object_width_mm = 900, object_height_mm = 675;
+    double fov_mm = 300;
+    double capture_width_mm = 1116, capture_height_mm = 844;
+    // Static object textures, keyed by camera resolution (physical pixel scale).
+    std::unordered_map<uint64_t, std::shared_ptr<ObjectMask>> masks;
     std::vector<uint8_t> pixels;
 };
 constexpr uint32_t mono8 = 0x01080001;
@@ -195,7 +204,7 @@ struct Object {
     std::shared_ptr<const Topology> topology;
     std::shared_ptr<Scene> scene;
     bool enumerated = false, active = false, running = false, locked = false, closed = false;
-    uint32_t width = 640, height = 480, trigger = 0;
+    uint32_t width = 640, height = 640, trigger = 0;
     uint32_t pixel_format = mono8;
     double fps = 30.0, exposure = 1000.0;
     uint64_t triggers = 0, delivered = 0, remaining = 0, epoch = 0, timestamp = 0, frame = 0;
@@ -218,6 +227,32 @@ uintptr_t next_handle = 1;
 uint32_t initializations = 0;
 constexpr uint64_t xml_address = 0x10000;
 constexpr size_t max_image = 8192ULL * 8192 * 3;
+// Round one common pitch per axis. All cameras have identical pixel overlap,
+// including when physical pitch falls between pixels at the chosen resolution.
+uint32_t origin_x(const Object& d, uint32_t column) {
+    const auto& s = *d.scene;
+    return s.columns > 1 ? column * uint32_t(std::llround(
+        (s.capture_width_mm - s.fov_mm) /
+        (s.columns - 1) * d.width / s.fov_mm)) : 0;
+}
+uint32_t origin_y(const Object& d, uint32_t row) {
+    const auto& s = *d.scene;
+    return s.rows > 1 ? row * uint32_t(std::llround(
+        (s.capture_height_mm - s.fov_mm) /
+        (s.rows - 1) * d.height / s.fov_mm)) : 0;
+}
+uint32_t crop_left(const Object& d) {
+    return d.scene->columns > 1 ? (d.width - origin_x(d, 1)) / 2 : 0;
+}
+uint32_t crop_right(const Object& d) {
+    return d.scene->columns > 1 ? (d.width - origin_x(d, 1) + 1) / 2 : 0;
+}
+uint32_t crop_top(const Object& d) {
+    return d.scene->rows > 1 ? (d.height - origin_y(d, 1)) / 2 : 0;
+}
+uint32_t crop_bottom(const Object& d) {
+    return d.scene->rows > 1 ? (d.height - origin_y(d, 1) + 1) / 2 : 0;
+}
 size_t channels(const Object& d) { return d.pixel_format == rgb8 ? 3 : 1; }
 size_t payload_size(const Object& d) { return size_t(d.width) * d.height * channels(d); }
 std::thread engine_thread;
@@ -266,10 +301,22 @@ long env_integer(const char* key, long fallback, long minimum, long maximum) {
 std::shared_ptr<Scene> load_scene(uint32_t rows, uint32_t columns) {
     auto scene = std::make_shared<Scene>(); scene->rows = rows; scene->columns = columns;
     scene->tile_width = uint32_t(env_integer("VFG_TILE_WIDTH", 640, 1, 8192));
-    scene->tile_height = uint32_t(env_integer("VFG_TILE_HEIGHT", 480, 1, 8192));
+    scene->tile_height = uint32_t(env_integer("VFG_TILE_HEIGHT", 640, 1, 8192));
+    // Place a regular grid over the full capture area, not over the object edges.
+    if (const char* margin_text = std::getenv("VFG_MARGIN_MM"); margin_text && *margin_text) {
+        const double margin = env_integer("VFG_MARGIN_MM", 20, 0, 100);
+        scene->capture_width_mm = scene->object_width_mm + 2 * margin;
+        scene->capture_height_mm = scene->object_height_mm + 2 * margin;
+    }
+    // The physical model describes the configured grid. A single row/column
+    // still shows one full camera FOV; multi-camera axes must overlap.
+    if (columns > 1) require(scene->capture_width_mm > scene->fov_mm &&
+        scene->capture_width_mm <= columns * scene->fov_mm,
+        GC_ERR_INVALID_VALUE, "Object width and margin exceed the grid FOV");
+    if (rows > 1) require(scene->capture_height_mm > scene->fov_mm &&
+        scene->capture_height_mm <= rows * scene->fov_mm,
+        GC_ERR_INVALID_VALUE, "Object height and margin exceed the grid FOV");
     scene->step = int(env_integer("VFG_STEP_PIXELS", 3, -64, 64));
-    scene->circles = uint32_t(env_integer("VFG_CIRCLE_COUNT", 2, 1, 2));
-    scene->circle_radius = uint32_t(env_integer("VFG_CIRCLE_RADIUS", 0, 0, 8192));
     const char* path = std::getenv("VFG_SCENE_PGM");
     if (!path || !*path) return scene;
     std::ifstream input(path, std::ios::binary);
@@ -334,7 +381,7 @@ std::string xml(Object& o) {
         std::vector<std::string> features = {"DeviceVendorName", "DeviceModelName", "DeviceSerialNumber", "DeviceUserID", "Width", "Height",
             "WidthMax", "HeightMax", "OffsetX", "OffsetY", "PixelFormat", "PayloadSize", "AcquisitionMode", "AcquisitionFrameRate",
             "ExposureTime", "TriggerSelector", "TriggerMode", "TriggerSource", "TriggerSoftware", "AcquisitionStart", "AcquisitionStop", "TLParamsLocked",
-            "TileColumn", "TileRow", "MosaicColumns", "MosaicRows", "MotionStepPixels", "FrameCounter", "DroppedFrameCount"};
+            "VFGPreviewCropLeft", "VFGPreviewCropRight", "VFGPreviewCropTop", "VFGPreviewCropBottom", "TileColumn", "TileRow", "MosaicColumns", "MosaicRows", "MotionStepPixels", "FrameCounter", "DroppedFrameCount"};
         x += "<Category Name=\"Root\" NameSpace=\"Standard\">";
         for (auto& f : features) x += "<pFeature>" + f + "</pFeature>";
         x += "</Category>";
@@ -356,6 +403,11 @@ std::string xml(Object& o) {
             x += "<pValue>" + name + "Reg</pValue><Min>" + std::to_string(min) + "</Min><Max>" +
                 std::to_string(max) + "</Max><Inc>1</Inc></Integer>" + reg(name, address);
         };
+        for (auto& entry : std::vector<std::pair<std::string, uint32_t>>{{"VFGPreviewCropLeft", 0x68}, {"VFGPreviewCropRight", 0x6c},
+             {"VFGPreviewCropTop", 0x70}, {"VFGPreviewCropBottom", 0x74}}) {
+            x += "<Integer Name=\"" + entry.first + "\"><pValue>" + entry.first + "Reg</pValue></Integer>";
+            x += reg(entry.first, entry.second, false, "RO");
+        }
         integer("Width", 0, 1, 8192); integer("Height", 4, 1, 8192); integer("TLParamsLocked", 0x4c, 0, 1);
         for (auto& entry : std::vector<std::pair<std::string, uint32_t>>{{"FrameCounter", 0x50}, {"DroppedFrameCount", 0x58}}) {
             x += "<Integer Name=\"" + entry.first + "\"><pValue>" + entry.first + "Reg</pValue></Integer>"
@@ -398,7 +450,7 @@ void set_xml(const std::shared_ptr<Object>& o) { o->xml = xml(*o); }
 std::string url(Object& o) {
     std::ostringstream s;
     // IDs may contain punctuation or Unicode; never put them in a local URL.
-    s << "local:VirtualFG_v052_" << module(o.kind) << "_" << uintptr_t(o.handle) << ".xml;" << std::hex << xml_address << ";" << o.xml.size();
+    s << "local:VirtualFG_v059_" << module(o.kind) << "_" << uintptr_t(o.handle) << ".xml;" << std::hex << xml_address << ";" << o.xml.size();
     return s.str();
 }
 void tl_info(int cmd, Info info) {
@@ -406,7 +458,7 @@ void tl_info(int cmd, Info info) {
         case TL_INFO_ID: info.text("VirtualFG"); break;
         case TL_INFO_VENDOR: info.text("VirtualFG"); break;
         case TL_INFO_MODEL: info.text("SoftwareGenTL"); break;
-        case TL_INFO_VERSION: info.text("0.5.2"); break;
+        case TL_INFO_VERSION: info.text("0.5.9"); break;
         case TL_INFO_TLTYPE: info.text("Custom"); break;
         case TL_INFO_NAME: info.text("VirtualFG.cti"); break;
         case TL_INFO_PATHNAME: info.text(library_path().string()); break;
@@ -589,7 +641,7 @@ void impl_GCGetPortInfo(Lock&, PORT_HANDLE h, PORT_INFO_CMD cmd, INFO_ARGS) {
         case PORT_INFO_LITTLE_ENDIAN: case PORT_INFO_ACCESS_READ: info.flag(true); break;
         case PORT_INFO_ACCESS_WRITE: info.flag(o->kind == Kind::Remote); break;
         case PORT_INFO_BIG_ENDIAN: case PORT_INFO_ACCESS_NA: case PORT_INFO_ACCESS_NI: info.flag(false); break;
-        case PORT_INFO_VERSION: info.text("0.5.2"); break;
+        case PORT_INFO_VERSION: info.text("0.5.9"); break;
         case PORT_INFO_PORTNAME: info.text("Device"); break;
         default: fail(GC_ERR_NOT_IMPLEMENTED, "Unsupported port information");
     }
@@ -604,10 +656,12 @@ void impl_GCReadPort(Lock&, PORT_HANDLE h, uint64_t address, void* output, size_
     require(o->kind == Kind::Remote, GC_ERR_INVALID_ADDRESS, "Module has no register at this address");
     bool stream_running = false;
     for (auto& e : objects) if (e.second->kind == Kind::Stream && e.second->remote == h && e.second->running) stream_running = true;
-    std::array<uint8_t, 0x68> regs{};
+    std::array<uint8_t, 0x78> regs{};
     auto put = [&](size_t pos, auto value) { std::memcpy(regs.data() + pos, &value, sizeof(value)); };
     put(0, o->width); put(4, o->height); put(8, o->pixel_format); put(12, uint32_t(1));
     put(0x20, o->fps); put(0x28, o->exposure); put(0x30, o->trigger); put(0x4c, uint32_t(o->locked));
+    put(0x68, crop_left(*o)); put(0x6c, crop_right(*o));
+    put(0x70, crop_top(*o)); put(0x74, crop_bottom(*o));
     put(0x50, o->frame); put(0x58, o->dropped);
     put(0x60, uint32_t(o->locked || stream_running || o->active));
     put(0x64, uint32_t(o->trigger == 1 && o->active && stream_running && o->triggers < 1024));
@@ -797,64 +851,81 @@ void impl_EventGetDataInfo(Lock&, EVENT_HANDLE h, const void* input, size_t inpu
     else if (cmd == EVENT_DATA_ID) INFO.text("NewBuffer");
     else fail(GC_ERR_NOT_IMPLEMENTED, "Unsupported event data information");
 }
-int64_t circle_position(uint64_t frame, int64_t speed, uint32_t initial,
-                        uint32_t extent, uint32_t radius) {
-    const int64_t span = int64_t(extent) - 1 - 2 * radius;
-    if (span <= 0) return extent / 2;
-    const int64_t period = 2 * span;
-    const int64_t origin = std::clamp(int64_t(initial) - radius, int64_t(0), span);
-    // Reduce the frame counter before multiplication to avoid overflow on long runs.
-    int64_t phase = (origin + int64_t((frame - 1) % uint64_t(period)) * speed) % period;
-    if (phase < 0) phase += period;
-    return radius + (phase <= span ? phase : period - phase);
+std::shared_ptr<ObjectMask> object_mask(Object& d) {
+    auto& scene = *d.scene;
+    const uint64_t key = (uint64_t(d.width) << 32) | d.height;
+    auto found = scene.masks.find(key);
+    if (found != scene.masks.end()) return found->second;
+    auto mask = std::make_shared<ObjectMask>();
+    mask->width = std::max(1U, uint32_t(std::llround(scene.object_width_mm * d.width / scene.fov_mm)));
+    mask->height = std::max(1U, uint32_t(std::llround(scene.object_height_mm * d.height / scene.fov_mm)));
+    const size_t count = size_t(mask->width) * mask->height;
+    require(count <= 128ULL * 1024 * 1024, GC_ERR_RESOURCE_EXHAUSTED, "Object mask exceeds 512 MiB");
+    mask->mono.resize(count); mask->rgb.resize(count * 3);
+    // Resample the rectified photograph once per resolution, never per frame.
+    for (uint32_t y = 0; y < mask->height; ++y) {
+        const double sy = std::max(0.0, std::min(double(plate_height - 1),
+            (y + 0.5) * plate_height / mask->height - 0.5));
+        const uint32_t y0 = uint32_t(sy), y1 = std::min(y0 + 1, plate_height - 1);
+        const double fy = sy - y0;
+        for (uint32_t x = 0; x < mask->width; ++x) {
+            const double sx = std::max(0.0, std::min(double(plate_width - 1),
+                (x + 0.5) * plate_width / mask->width - 0.5));
+            const uint32_t x0 = uint32_t(sx), x1 = std::min(x0 + 1, plate_width - 1);
+            const double fx = sx - x0;
+            const size_t index = size_t(y) * mask->width + x;
+            auto* rgb = mask->rgb.data() + index * 3;
+            for (unsigned c = 0; c < 3; ++c) {
+                const double top = plate_rgb[(size_t(y0) * plate_width + x0) * 3 + c] * (1 - fx)
+                    + plate_rgb[(size_t(y0) * plate_width + x1) * 3 + c] * fx;
+                const double bottom = plate_rgb[(size_t(y1) * plate_width + x0) * 3 + c] * (1 - fx)
+                    + plate_rgb[(size_t(y1) * plate_width + x1) * 3 + c] * fx;
+                rgb[c] = uint8_t(std::lround(top * (1 - fy) + bottom * fy));
+            }
+            mask->mono[index] = uint8_t((77U * rgb[0] + 150U * rgb[1] + 29U * rgb[2] + 128) >> 8);
+        }
+    }
+    // Bound retained texture memory when repeatedly changing resolutions.
+    if (scene.masks.size() >= 4) scene.masks.clear();
+    scene.masks.emplace(key, mask);
+    return mask;
 }
-void draw_circles(uint8_t* pixels, Object& d, uint64_t frame) {
+void draw_object(uint8_t* pixels, Object& d, uint64_t frame) {
+    const auto mask = object_mask(d);
     const auto& scene = *d.scene;
-    const uint32_t width = d.width * scene.columns, height = d.height * scene.rows;
-    const uint32_t requested = scene.circle_radius ? scene.circle_radius :
-        std::max(1U, std::min(d.width, d.height) / 4);
-    const uint32_t radius = std::min(requested, (std::min(width, height) - 1) / 2);
-    const int64_t tile_x = int64_t(d.camera) * d.width, tile_y = int64_t(d.board) * d.height;
-    const int64_t radius2 = int64_t(radius) * radius;
-    // Only a linear background write: no full-scene image or lookup cache.
-    std::memset(pixels, 0, payload_size(d));
+    const int64_t canvas_width = origin_x(d, scene.columns - 1) + d.width;
+    const int64_t canvas_height = origin_y(d, scene.rows - 1) + d.height;
+    const int64_t tile_x = origin_x(d, d.camera), tile_y = origin_y(d, d.board);
+    // A gray canvas and a translated mask; only the mask/FOV intersection
+    // is copied. Horizontal wrapping makes an endless stream of equal panels.
+    std::memset(pixels, 96, payload_size(d));
+    const int64_t center_x = canvas_width / 2 +
+        int64_t((frame - 1) % uint64_t(canvas_width)) * scene.step;
+    const int64_t left = center_x - mask->width / 2;
+    const int64_t top = (canvas_height - mask->height) / 2;
+    const int64_t first_y = std::max(tile_y, top);
+    const int64_t last_y = std::min(tile_y + d.height, top + mask->height);
     const size_t components = channels(d);
-    for (uint32_t i = 0; i < scene.circles; ++i) {
-        const uint32_t initial_x = i == 0 ? width / 5 : width * 4 / 5;
-        const uint32_t initial_y = i == 0 ? height / 5 : height * 4 / 5;
-        const int64_t cx = circle_position(frame, i == 0 ? scene.step : -scene.step,
-                                           initial_x, width, radius);
-        const int64_t cy = circle_position(frame, i == 0 ? scene.step : 2 * scene.step,
-                                           initial_y, height, radius);
-        if (cx + radius < tile_x || cx - radius >= tile_x + d.width) continue;
-        const int64_t top = std::max(tile_y, cy - radius);
-        const int64_t bottom = std::min(tile_y + d.height - 1, cy + radius);
-        // Apply simulated exposure to two colors, not to every background pixel.
-        const auto exposed = [&](uint8_t value) {
-            return uint8_t(std::min(255.0, std::round(value * d.exposure / 1000.0)));
-        };
-        const uint8_t value = exposed(i == 0 ? 220 : 160);
-        const std::array<uint8_t, 3> color = i == 0 ?
-            std::array<uint8_t, 3>{exposed(220), exposed(60), exposed(30)} :
-            std::array<uint8_t, 3>{exposed(30), exposed(160), exposed(220)};
-        for (int64_t gy = top; gy <= bottom; ++gy) {
-            const int64_t dy = gy - cy, remaining = radius2 - dy * dy;
-            int64_t half = int64_t(std::sqrt(double(remaining)));
-            // Exact integer boundary even if a platform's sqrt rounds an edge.
-            while ((half + 1) * (half + 1) <= remaining) ++half;
-            while (half * half > remaining) --half;
-            const int64_t left = std::max(tile_x, cx - half);
-            const int64_t right = std::min(tile_x + d.width - 1, cx + half);
-            if (left <= right) {
-                auto* row = pixels + (size_t(gy - tile_y) * d.width + size_t(left - tile_x)) * components;
-                if (components == 1) {
-                    std::memset(row, value, size_t(right - left + 1));
-                } else {
-                    for (int64_t x = left; x <= right; ++x, row += 3)
-                        std::memcpy(row, color.data(), 3);
-                }
+    const auto& source = components == 3 ? mask->rgb : mask->mono;
+    for (int64_t offset = 0; offset < mask->width;) {
+        const int64_t wrapped_x = ((left + offset) % canvas_width + canvas_width) % canvas_width;
+        const int64_t span = std::min(int64_t(mask->width) - offset, canvas_width - wrapped_x);
+        const int64_t x0 = std::max(tile_x, wrapped_x);
+        const int64_t x1 = std::min(tile_x + d.width, wrapped_x + span);
+        if (x0 < x1) {
+            for (int64_t y = first_y; y < last_y; ++y) {
+                const size_t src = (size_t(y - top) * mask->width + size_t(offset + x0 - wrapped_x)) * components;
+                const size_t dst = (size_t(y - tile_y) * d.width + size_t(x0 - tile_x)) * components;
+                std::memcpy(pixels + dst, source.data() + src, size_t(x1 - x0) * components);
             }
         }
+        offset += span;
+    }
+    if (d.exposure != 1000.0) {
+        std::array<uint8_t, 256> lut{};
+        for (size_t i = 0; i < lut.size(); ++i)
+            lut[i] = uint8_t(std::min(255.0, std::round(i * d.exposure / 1000.0)));
+        for (size_t i = 0; i < payload_size(d); ++i) pixels[i] = lut[pixels[i]];
     }
 }
 void fill(Object& b, Object& d, uint64_t frame) {
@@ -865,20 +936,22 @@ void fill(Object& b, Object& d, uint64_t frame) {
     auto pixels = static_cast<uint8_t*>(b.data);
     auto& scene = *d.scene;
     if (scene.pixels.empty()) {
-        draw_circles(pixels, d, frame);
+        draw_object(pixels, d, frame);
     } else {
         // Legacy file input remains available to the older image playback demos.
-        const uint32_t canvas_width = d.width * scene.columns, canvas_height = d.height * scene.rows;
+        const uint32_t canvas_width = origin_x(d, scene.columns - 1) + d.width;
+        const uint32_t canvas_height = origin_y(d, scene.rows - 1) + d.height;
         const int64_t shift = (int64_t((frame - 1) % canvas_width) * scene.step) % canvas_width;
         std::vector<uint32_t> source_x(d.width);
         for (uint32_t x = 0; x < d.width; ++x) {
-            int64_t gx = int64_t(d.camera) * d.width + x + shift;
+            int64_t gx = int64_t(origin_x(d, d.camera)) + x + shift;
             gx = (gx % canvas_width + canvas_width) % canvas_width;
             source_x[x] = uint32_t(uint64_t(gx) * scene.width / canvas_width);
         }
         for (uint32_t y = 0; y < d.height; ++y) {
             auto row = pixels + size_t(y) * d.width * channels(d);
-            const uint32_t gy = uint32_t(d.board) * d.height + y;
+            const int64_t gy = std::clamp(int64_t(origin_y(d, d.board)) + y,
+                                          int64_t(0), int64_t(canvas_height - 1));
             const uint32_t sy = uint32_t(uint64_t(gy) * scene.height / canvas_height);
             const auto* source = scene.pixels.data() + size_t(sy) * scene.width;
             for (uint32_t x = 0; x < d.width; ++x)

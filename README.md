@@ -267,13 +267,13 @@ Apply는 창을 닫은 뒤 `apply_requested(dict)`로 GenApi 기능 이름과 �
 - 인덱스는 연결 요청의 보드/카메라 순서대로 0부터 부여합니다.
 - 컨트롤러는 GUI 슬롯 `on_frame_received(index, fps, image)`에 맞춰 인자 순서를 바꿉니다.
 - 매니저가 버퍼 반환 전에 QImage를 복사·축소하며 GUI 스레드에서 QPixmap으로 변환합니다.
-- 기본 미리보기 크기는 최대 640×480, 전송 상한은 카메라별 30 FPS입니다.
+- 미리보기 전송 크기는 최대 640×640, 전송 상한은 카메라별 30 FPS입니다.
 - 수신 FPS는 약 1초 간격으로 계산하며 첫 측정 전과 정지 후에는 0입니다.
   `fps_updated(float)`는 연결된 카메라당 평균 수신 FPS입니다.
 - 연속 취득으로 사용하며 해당 노드가 있으면 `AcquisitionMode=Continuous`, `TriggerMode=Off`로 설정합니다.
 - 지원 형식은 Mono8, RGB8(RGB24)의 단일 스트림·단일 컴포넌트이며 행 패딩은 지원하지 않습니다.
   Bayer 및 packed 10/12-bit 변환은 구현되어 있지 않습니다. 가상 CTI는 Mono8(기본값)과 RGB8을 생성합니다. Settings의 PixelFormat에서 RGB24를 선택하면
-  RGB 순서의 8비트 3채널 영상으로 바뀌며 원 두 개가 서로 다른 색으로 표시됩니다.
+  RGB 순서의 8비트 3채널 영상으로 바뀌며 원근 보정한 철판 사진을 3채널로 전달합니다.
   카메라 신호와 GenApi 설정에는 표준 이름 `RGB8`을 사용합니다.
 
 창을 닫거나 Ctrl+C를 누르면 매니저 정리를 요청하고 작업 스레드가 종료된 뒤 앱을 닫습니다.
@@ -300,8 +300,8 @@ python native/virtualfg/build.py --debug
 `TriggerMode`, `TriggerSource`, `TriggerSoftware`, `AcquisitionStart`, `AcquisitionStop`
 노드를 제공합니다. `DeviceSerialNumber`, 읽기 전용 `DeviceUserID`는 JSON을 반영합니다.
 영상 생성 환경변수는 `VFG_TILE_WIDTH`, `VFG_TILE_HEIGHT`, `VFG_STEP_PIXELS`,
-`VFG_CIRCLE_COUNT`, `VFG_CIRCLE_RADIUS`, `VFG_SCENE_PGM`입니다.
-가상 카메라의 기본 취득 속도는 30 FPS이며, 원의 기본 이동량은 프레임당 3픽셀입니다. `VFG_STEP_PIXELS=12 python main.py`처럼
+`VFG_SCENE_PGM`입니다.
+가상 카메라의 기본 취득 속도는 30 FPS이며, 물체의 기본 이동량은 프레임당 3픽셀입니다. `VFG_STEP_PIXELS=12 python main.py`처럼
 실행하면 이동 속도를 더 높일 수 있습니다(범위 -64~64, 음수는 방향 반전, 0은 정지).
 장면의 행은 보드 순서, 열은 보드 내 카메라 순서이며 전체 열 수는 보드별 카메라 수의 최댓값입니다.
 장치 개수는 환경변수가 아닌 JSON에서 지정합니다.
@@ -309,3 +309,49 @@ python native/virtualfg/build.py --debug
 Producer 및 포함된 외부 헤더의 라이선스 정보는
 [LICENSE](native/virtualfg/LICENSE),
 [THIRD_PARTY_NOTICES.md](native/virtualfg/THIRD_PARTY_NOTICES.md)를 참고하세요.
+
+### 가상 카메라 FOV와 미리보기 overlap
+
+- 기본 원본은 **640×640 px**, 카메라 FOV는 **300×300 mm**입니다.
+- 기본 4×3 배열은 900×675 mm 물체에 좌우 108 mm·상하 84.5 mm 여유를 둔 **1116×844 mm**를 촬영합니다.
+  전체 영역에 등간격 배치하며 가로·세로 카메라 간격은 모두 272 mm입니다.
+  인접 FOV overlap은 가로·세로 모두 28 mm입니다.
+- `VFG_MARGIN_MM=10 python main.py`처럼 사방 여유를 변경할 수 있습니다.
+  설정된 배열의 전체 FOV로 물체와 여유를 덮을 수 있어야 합니다.
+- 각 방향의 공통 카메라 간격을 한 번 반올림하므로 실제 촬영 범위에는 픽셀 단위 오차가 있습니다.
+  동일 배열의 카메라들은 같은 Width/Height를 사용해야 이 좌표 모델이 일치합니다.
+- CTI는 overlap이 포함된 원본을 생성합니다. 검사에 사용할 원본 버퍼는 유지합니다.
+- Settings의 **Overlap Crop (Preview)** 체크박스는 즉시 적용되며 기본값은 꺼짐입니다.
+  꺼짐: 원본 전체를 정사각형 라벨 안에 비율을 유지해 표시합니다.
+  켜짐: 외곽을 포함한 모든 카메라에 같은 crop을 적용하고, 남은 영상 전체를 비율 유지해 표시합니다.
+  기본 640×640에서 좌우·상하 각각 30 px를 제거해 모두 **580×580**가 됩니다.
+  외곽 촬영 여유도 함께 잘리며, 전체 crop 영역은 약 1087.5×815.6 mm입니다.
+  배치·간격은 UI 파일을 따르고, 코드는 라벨의 1:1 비율만 유지합니다. 픽셀 크기는 고정하지 않습니다.
+  체크박스는 영상 crop만 변경하며, 영상은 라벨 안에 비율을 유지해 표시합니다.
+- `config/settings.py`의 `CAMERA_POSITIONS_MM`에 `(프레임그래버 ID, 카메라 ID)`별
+  FOV 왼쪽 위 `(x, y)`를 mm로 지정합니다. `CAMERA_FOV_MM`은 공통 FOV 크기입니다.
+  `CAMERA_SPACING_MM`, `CAMERA_FOV_MM`, `CAMERA_GRID`에서 전체 촬영 영역과 좌표를 산출합니다.
+  가로·세로 간격은 서로 달라도 되지만, 같은 방향에서는 모두 일정해야 합니다.
+  회전 없는 완전한 행·열 배열과 동일 프레임 크기가 필요합니다.
+  보정 정보 누락이나 잘못된 배치는 로그에 표시하고 보정을 끕니다.
+- 배치와 기본 640×640 ROI는 DeviceManager 생성 시 계산해 고정합니다. 프레임마다 또는
+  체크박스 전환마다 다시 계산하지 않습니다. 다른 해상도를 처음 사용할 때만 해당 ROI를 계산해 캐시합니다.
+- config 변경은 앱 재시작 시 읽습니다. 가상 CTI의 `VFG_MARGIN_MM`을 바꾸면
+  config 좌표도 실제 생성된 FOV 위치와 일치시켜야 합니다. 보정 config 자체가 CTI 배치를 바꾸지는 않습니다.
+- 미리보기는 최대 640×640 범위로 비율을 유지해 축소합니다. 보정은 영상 좌표만 처리하며,
+  움직이는 대상의 경계까지 정확히 맞추려면 카메라 취득 시점 동기화가 별도로 필요합니다.
+
+### 반복 이동 물체
+
+기본 장면은 어두운 회색 배경 위의 **900×675 mm** 사각형 물체입니다.
+물체 표면은 제공된 철판 사진의 윗면을 네 모서리 기준으로 원근 보정한 이미지입니다.
+`native/virtualfg/prepare_texture.py`로 원본 사진에서 900×675 비율의 PNG/PPM을 재생성할 수 있습니다(OpenCV 필요).
+`build.py`는 준비된 PPM을 CTI에 내장하므로 실행 시 별도 이미지 파일이나 OpenCV는 필요하지 않습니다.
+현재 기본 텍스처는 `native/virtualfg/assets/steel_plate_defects.ppm`입니다. 보정한 철판에
+제공된 결함 참고 이미지의 어두운 흠집 1개, 짧은 크랙 2개, 밝은 스크래치 1개를 합성했습니다.
+동일 이름의 PNG는 미리보기이며, 결함 없는 `steel_plate.png`/`steel_plate.ppm`도 보관합니다.
+사진의 원근·조명과 낮은 해상도로 인한 디테일 한계는 남습니다. 물체 마스크를 해상도별로 한 번 생성하고, 프레임마다
+중심 좌표만 수평으로 이동시켜 각 카메라 FOV와 겹치는 부분을 복사합니다.
+오른쪽으로 나간 부분은 왼쪽으로 이어 붙여 같은 물체가 연속 투입되는 장면을 만듭니다.
+처음에는 물체가 촬영 영역 중앙에 있으며 기본 이동량은 프레임당 3픽셀입니다.
+`VFG_STEP_PIXELS=0`은 정지, 음수는 반대 방향입니다. Mono8과 RGB8 모두 지원합니다.

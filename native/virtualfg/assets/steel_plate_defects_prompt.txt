@@ -1,0 +1,6 @@
+Tool: built-in image_gen (compositing edit)
+Target: steel_plate.png
+Reference: user-supplied three-panel steel defect photograph
+Output: steel_plate_defects.png; lossless RGB encoding in steel_plate_defects.ppm
+
+Use case: compositing. Edit target image 1 is the existing rectified blue-gray cold rolled steel plate texture, covering the complete frame. Image 2 is a reference strip with three steel surface defects: long dark horizontal gouge/seam, small jagged vertical dark crack with chipped edges, thin bright horizontal scratch. Make ONE 4:3 landscape flat top-down texture image of the same plate. Preserve image 1's blue-gray tone, lighting gradient, fine surface grain and full-frame material. Composite only four small localized realistic defects distributed across its interior: one dark horizontal gouge, two short irregular dark cracks at separate locations, and one fine bright scratch, inspired by image 2. Defects must be clearly visible at preview scale but sparse: keep over 90 percent of the plate clean. Blend the defect edges into the existing material without rectangular patches or abrupt lighting changes. No panels, no montage borders, no UI, no annotations, no labels, no text, no new plate silhouette, no perspective. Return just the entire edited plate texture in 4:3 aspect ratio.

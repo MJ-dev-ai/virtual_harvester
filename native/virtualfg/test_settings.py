@@ -77,9 +77,9 @@ class SettingsTest(unittest.TestCase):
                     self.assertEqual(component.data.dtype, np.uint8)
                     if channels == 3:
                         pixels = component.data.reshape(241, 321, 3)
-                        # First camera sees the first (red) circle on a black background.
-                        self.assertTrue(np.any(np.all(pixels == (220, 60, 30), axis=2)))
-                        self.assertTrue(np.any(np.all(pixels == (0, 0, 0), axis=2)))
+                        # First camera sees the blue-gray photograph and neutral background.
+                        self.assertTrue(np.any(pixels[:, :, 2] > pixels[:, :, 0]))
+                        self.assertTrue(np.any(np.all(pixels == (96, 96, 96), axis=2)))
             finally:
                 self.ia.stop()
 

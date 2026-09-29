@@ -42,25 +42,22 @@
      </property>
      <layout class="QGridLayout" name="previewsLayout" rowstretch="1,1,1" columnstretch="1,1,1,1">
       <property name="spacing">
-       <number>8</number>
+       <number>0</number>
       </property>
       <item row="0" column="0">
-       <widget class="QGroupBox" name="groupCamera01">
-        <property name="title">
-         <string>Camera 01</string>
-        </property>
+       <widget class="QWidget" name="groupCamera01">
         <layout class="QVBoxLayout" name="cameraLayout01">
          <property name="leftMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="topMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <item>
           <widget class="QLabel" name="labelCamera01">
@@ -73,14 +70,14 @@
            <property name="minimumSize">
             <size>
              <width>128</width>
-             <height>72</height>
+             <height>128</height>
             </size>
            </property>
            <property name="accessibleName">
             <string>Camera 01 preview</string>
            </property>
            <property name="styleSheet">
-            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+            <string notr="true">background-color: #000000; color: #aeb7c4; border: 3px solid #000000; border-radius: 0px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
@@ -97,22 +94,19 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QGroupBox" name="groupCamera02">
-        <property name="title">
-         <string>Camera 02</string>
-        </property>
+       <widget class="QWidget" name="groupCamera02">
         <layout class="QVBoxLayout" name="cameraLayout02">
          <property name="leftMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="topMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <item>
           <widget class="QLabel" name="labelCamera02">
@@ -125,14 +119,14 @@
            <property name="minimumSize">
             <size>
              <width>128</width>
-             <height>72</height>
+             <height>128</height>
             </size>
            </property>
            <property name="accessibleName">
             <string>Camera 02 preview</string>
            </property>
            <property name="styleSheet">
-            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+            <string notr="true">background-color: #000000; color: #aeb7c4; border: 3px solid #000000; border-radius: 0px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
@@ -149,22 +143,19 @@
        </widget>
       </item>
       <item row="0" column="2">
-       <widget class="QGroupBox" name="groupCamera03">
-        <property name="title">
-         <string>Camera 03</string>
-        </property>
+       <widget class="QWidget" name="groupCamera03">
         <layout class="QVBoxLayout" name="cameraLayout03">
          <property name="leftMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="topMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <item>
           <widget class="QLabel" name="labelCamera03">
@@ -177,14 +168,14 @@
            <property name="minimumSize">
             <size>
              <width>128</width>
-             <height>72</height>
+             <height>128</height>
             </size>
            </property>
            <property name="accessibleName">
             <string>Camera 03 preview</string>
            </property>
            <property name="styleSheet">
-            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+            <string notr="true">background-color: #000000; color: #aeb7c4; border: 3px solid #000000; border-radius: 0px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
@@ -201,22 +192,19 @@
        </widget>
       </item>
       <item row="0" column="3">
-       <widget class="QGroupBox" name="groupCamera04">
-        <property name="title">
-         <string>Camera 04</string>
-        </property>
+       <widget class="QWidget" name="groupCamera04">
         <layout class="QVBoxLayout" name="cameraLayout04">
          <property name="leftMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="topMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <item>
           <widget class="QLabel" name="labelCamera04">
@@ -229,14 +217,14 @@
            <property name="minimumSize">
             <size>
              <width>128</width>
-             <height>72</height>
+             <height>128</height>
             </size>
            </property>
            <property name="accessibleName">
             <string>Camera 04 preview</string>
            </property>
            <property name="styleSheet">
-            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+            <string notr="true">background-color: #000000; color: #aeb7c4; border: 3px solid #000000; border-radius: 0px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
@@ -253,22 +241,19 @@
        </widget>
       </item>
       <item row="1" column="0">
-       <widget class="QGroupBox" name="groupCamera05">
-        <property name="title">
-         <string>Camera 05</string>
-        </property>
+       <widget class="QWidget" name="groupCamera05">
         <layout class="QVBoxLayout" name="cameraLayout05">
          <property name="leftMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="topMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <item>
           <widget class="QLabel" name="labelCamera05">
@@ -281,14 +266,14 @@
            <property name="minimumSize">
             <size>
              <width>128</width>
-             <height>72</height>
+             <height>128</height>
             </size>
            </property>
            <property name="accessibleName">
             <string>Camera 05 preview</string>
            </property>
            <property name="styleSheet">
-            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+            <string notr="true">background-color: #000000; color: #aeb7c4; border: 3px solid #000000; border-radius: 0px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
@@ -305,22 +290,19 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QGroupBox" name="groupCamera06">
-        <property name="title">
-         <string>Camera 06</string>
-        </property>
+       <widget class="QWidget" name="groupCamera06">
         <layout class="QVBoxLayout" name="cameraLayout06">
          <property name="leftMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="topMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <item>
           <widget class="QLabel" name="labelCamera06">
@@ -333,14 +315,14 @@
            <property name="minimumSize">
             <size>
              <width>128</width>
-             <height>72</height>
+             <height>128</height>
             </size>
            </property>
            <property name="accessibleName">
             <string>Camera 06 preview</string>
            </property>
            <property name="styleSheet">
-            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+            <string notr="true">background-color: #000000; color: #aeb7c4; border: 3px solid #000000; border-radius: 0px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
@@ -357,22 +339,19 @@
        </widget>
       </item>
       <item row="1" column="2">
-       <widget class="QGroupBox" name="groupCamera07">
-        <property name="title">
-         <string>Camera 07</string>
-        </property>
+       <widget class="QWidget" name="groupCamera07">
         <layout class="QVBoxLayout" name="cameraLayout07">
          <property name="leftMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="topMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <item>
           <widget class="QLabel" name="labelCamera07">
@@ -385,14 +364,14 @@
            <property name="minimumSize">
             <size>
              <width>128</width>
-             <height>72</height>
+             <height>128</height>
             </size>
            </property>
            <property name="accessibleName">
             <string>Camera 07 preview</string>
            </property>
            <property name="styleSheet">
-            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+            <string notr="true">background-color: #000000; color: #aeb7c4; border: 3px solid #000000; border-radius: 0px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
@@ -409,22 +388,19 @@
        </widget>
       </item>
       <item row="1" column="3">
-       <widget class="QGroupBox" name="groupCamera08">
-        <property name="title">
-         <string>Camera 08</string>
-        </property>
+       <widget class="QWidget" name="groupCamera08">
         <layout class="QVBoxLayout" name="cameraLayout08">
          <property name="leftMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="topMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <item>
           <widget class="QLabel" name="labelCamera08">
@@ -437,14 +413,14 @@
            <property name="minimumSize">
             <size>
              <width>128</width>
-             <height>72</height>
+             <height>128</height>
             </size>
            </property>
            <property name="accessibleName">
             <string>Camera 08 preview</string>
            </property>
            <property name="styleSheet">
-            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+            <string notr="true">background-color: #000000; color: #aeb7c4; border: 3px solid #000000; border-radius: 0px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
@@ -461,22 +437,19 @@
        </widget>
       </item>
       <item row="2" column="0">
-       <widget class="QGroupBox" name="groupCamera09">
-        <property name="title">
-         <string>Camera 09</string>
-        </property>
+       <widget class="QWidget" name="groupCamera09">
         <layout class="QVBoxLayout" name="cameraLayout09">
          <property name="leftMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="topMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <item>
           <widget class="QLabel" name="labelCamera09">
@@ -489,14 +462,14 @@
            <property name="minimumSize">
             <size>
              <width>128</width>
-             <height>72</height>
+             <height>128</height>
             </size>
            </property>
            <property name="accessibleName">
             <string>Camera 09 preview</string>
            </property>
            <property name="styleSheet">
-            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+            <string notr="true">background-color: #000000; color: #aeb7c4; border: 3px solid #000000; border-radius: 0px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
@@ -513,22 +486,19 @@
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QGroupBox" name="groupCamera10">
-        <property name="title">
-         <string>Camera 10</string>
-        </property>
+       <widget class="QWidget" name="groupCamera10">
         <layout class="QVBoxLayout" name="cameraLayout10">
          <property name="leftMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="topMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <item>
           <widget class="QLabel" name="labelCamera10">
@@ -541,14 +511,14 @@
            <property name="minimumSize">
             <size>
              <width>128</width>
-             <height>72</height>
+             <height>128</height>
             </size>
            </property>
            <property name="accessibleName">
             <string>Camera 10 preview</string>
            </property>
            <property name="styleSheet">
-            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+            <string notr="true">background-color: #000000; color: #aeb7c4; border: 3px solid #000000; border-radius: 0px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
@@ -565,22 +535,19 @@
        </widget>
       </item>
       <item row="2" column="2">
-       <widget class="QGroupBox" name="groupCamera11">
-        <property name="title">
-         <string>Camera 11</string>
-        </property>
+       <widget class="QWidget" name="groupCamera11">
         <layout class="QVBoxLayout" name="cameraLayout11">
          <property name="leftMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="topMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <item>
           <widget class="QLabel" name="labelCamera11">
@@ -593,14 +560,14 @@
            <property name="minimumSize">
             <size>
              <width>128</width>
-             <height>72</height>
+             <height>128</height>
             </size>
            </property>
            <property name="accessibleName">
             <string>Camera 11 preview</string>
            </property>
            <property name="styleSheet">
-            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+            <string notr="true">background-color: #000000; color: #aeb7c4; border: 3px solid #000000; border-radius: 0px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
@@ -617,22 +584,19 @@
        </widget>
       </item>
       <item row="2" column="3">
-       <widget class="QGroupBox" name="groupCamera12">
-        <property name="title">
-         <string>Camera 12</string>
-        </property>
+       <widget class="QWidget" name="groupCamera12">
         <layout class="QVBoxLayout" name="cameraLayout12">
          <property name="leftMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="topMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>6</number>
+          <number>0</number>
          </property>
          <item>
           <widget class="QLabel" name="labelCamera12">
@@ -645,14 +609,14 @@
            <property name="minimumSize">
             <size>
              <width>128</width>
-             <height>72</height>
+             <height>128</height>
             </size>
            </property>
            <property name="accessibleName">
             <string>Camera 12 preview</string>
            </property>
            <property name="styleSheet">
-            <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
+            <string notr="true">background-color: #000000; color: #aeb7c4; border: 3px solid #000000; border-radius: 0px;</string>
            </property>
            <property name="text">
             <string>No signal</string>

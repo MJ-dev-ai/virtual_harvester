@@ -1,13 +1,67 @@
 from PySide6.QtWidgets import (
-    QMainWindow, QLabel, QComboBox,
+    QMainWindow, QLabel, QComboBox, QGridLayout,
     QPushButton, QTreeWidget, QPlainTextEdit, QTreeWidgetItem
 )
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import Signal, Slot, QDateTime, Qt
-from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtCore import Signal, Slot, QDateTime, Qt, QRect
+from PySide6.QtGui import QImage, QPixmap, QPainter
 from config.path import UI_PATH, OUTPUT_PATH
 from enum import Enum, auto
 from time import perf_counter
+
+class _PreviewLabel(QLabel):
+    """Render the full received ROI, including after a window resize."""
+
+    def paintEvent(self, event):
+        pixmap = self.pixmap()
+        if pixmap.isNull():
+            return super().paintEvent(event)
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), self.palette().window())
+        target = self.contentsRect()
+        size = pixmap.size().scaled(target.size(), Qt.KeepAspectRatio)
+        target = QRect(0, 0, size.width(), size.height())
+        target.moveCenter(self.contentsRect().center())
+        painter.setRenderHint(QPainter.SmoothPixmapTransform)
+        painter.drawPixmap(target, pixmap, pixmap.rect())
+
+
+class _SquarePreviewLayout(QGridLayout):
+    """Constrain tile aspect ratio only; use the grid and spacing from the UI."""
+
+    def setGeometry(self, rect):
+        rows, columns = max(1, self.rowCount()), max(1, self.columnCount())
+        margins = self.contentsMargins()
+        gap_x = max(0, self.horizontalSpacing()) * (columns - 1)
+        gap_y = max(0, self.verticalSpacing()) * (rows - 1)
+        available_width = max(0, rect.width() - margins.left() - margins.right() - gap_x)
+        available_height = max(0, rect.height() - margins.top() - margins.bottom() - gap_y)
+        side = min(available_width // columns, available_height // rows)
+        width = side * columns + gap_x + margins.left() + margins.right()
+        height = side * rows + gap_y + margins.top() + margins.bottom()
+        super().setGeometry(QRect(
+            rect.x() + (rect.width() - width) // 2,
+            rect.y() + (rect.height() - height) // 2,
+            width, height,
+        ))
+
+
+class _MainWidgetLoader(QUiLoader):
+    def createLayout(self, class_name, parent=None, name=""):
+        if name == "previewsLayout":
+            layout = _SquarePreviewLayout(parent)
+            layout.setObjectName(name)
+            return layout
+        return super().createLayout(class_name, parent, name)
+
+    def createWidget(self, class_name, parent=None, name=""):
+        if class_name == "QLabel" and name.startswith("labelCamera"):
+            label = _PreviewLabel(parent)
+            label.setObjectName(name)
+            return label
+        return super().createWidget(class_name, parent, name)
+
+
 
 class State(Enum):
     INITIAL = auto()
@@ -34,7 +88,7 @@ class MainWindow(QMainWindow):
         self._gui_frame_count = 0
         self._gui_fps_started = None
         self._gui_fps = 0.0
-        loader = QUiLoader()
+        loader = _MainWidgetLoader()
         self.main_widget = loader.load(str(UI_PATH / "mainwidget.ui"), self)
         if self.main_widget is None:
             raise RuntimeError(loader.errorString())
@@ -236,10 +290,18 @@ class MainWindow(QMainWindow):
     def clear_log(self):
         self.log_text.clear()
 
+    @Slot(dict)
+    def on_preview_layout_changed(self, result):
+        # Crop affects image pixels only, never label size or placement.
+        for label in self.camera_labels:
+            label.clear()
+        if not result["success"]:
+            self.append_log(f"Overlap preview: {result['error']}")
+
     @Slot(int, QImage, float)
     def on_frame_received(self, camera_idx: int, frame: QImage, fps: float):
         """Display an owned QImage on camera 0..11 in the GUI thread."""
-        if self.state != State.ACQUIRING:
+        if self.state not in (State.ACQUIRING, State.CONNECTED):
             return
         if not 0 <= camera_idx < min(len(self.camera_labels), len(self.fps_lists)):
             return
@@ -273,12 +335,7 @@ class MainWindow(QMainWindow):
         )
         if frame.isNull() or label.contentsRect().size().isEmpty():
             return
-        pixmap = QPixmap.fromImage(frame).scaled(
-            label.contentsRect().size(),
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation,
-        )
-        label.setPixmap(pixmap)
+        label.setPixmap(QPixmap.fromImage(frame))
     
     @Slot()
     def open_settings(self):

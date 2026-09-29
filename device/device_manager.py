@@ -17,6 +17,8 @@ import numpy as np
 from time import perf_counter
 from harvesters.core import Harvester
 from genicam import genapi
+from config import settings as preview_config
+from device.preview import preview_regions
 
 
 SETTINGS_FEATURES = (
@@ -144,10 +146,24 @@ class DeviceManager(QObject):
     error_occurred = Signal(dict)
     camera_settings_received = Signal(dict)
     settings_apply_finished = Signal(dict)
+    preview_layout_changed = Signal(dict)
 
-    def __init__(self, virtual_cti_path, real_cti_path=None, preview_fps=30.0):
+    def __init__(self, virtual_cti_path, real_cti_path=None, preview_fps=30.0,
+                 inspection_enabled=False):
         super().__init__()
         self._applying_settings = False
+        self._inspection_enabled = inspection_enabled
+        self._preview_overlap = preview_config.PREVIEW_OVERLAP_ENABLED
+        self._preview_rois = {}
+        # Freeze calibration at construction. Frame processing only looks up ROIs.
+        self._preview_positions = deepcopy(preview_config.CAMERA_POSITIONS_MM)
+        self._preview_fov = tuple(preview_config.CAMERA_FOV_MM)
+        self._preview_geometry_cache = {}
+        self._preview_geometry_error = None
+        try:
+            self._prepare_preview_geometry((640, 640))
+        except Exception as error:
+            self._preview_geometry_error = str(error)
         self._harvester = None
         self._vcti_path = virtual_cti_path
         self._rcti_path = real_cti_path
@@ -260,6 +276,7 @@ class DeviceManager(QObject):
 
             self._cameras = cameras
             self._frame_buffers = frame_buffers
+            self.set_preview_overlap(self._preview_overlap)
             self.connect_finished.emit({"success": True, "error": None})
             self.emit_camera_settings()
         except Exception as e:
@@ -409,6 +426,49 @@ class DeviceManager(QObject):
                     ) * step
         return result
 
+    def _prepare_preview_geometry(self, size):
+        """Cache one fixed ROI map per resolution, never per frame or toggle."""
+        if size not in self._preview_geometry_cache:
+            sizes = {key: size for key in self._preview_positions}
+            rois, tiles = preview_regions(sizes, self._preview_positions, self._preview_fov)
+            rectangles = {key: tile["rect"] for key, tile in zip(sizes, tiles)}
+            self._preview_geometry_cache[size] = (rois, rectangles)
+        return self._preview_geometry_cache[size]
+
+    @Slot(bool)
+    def set_preview_overlap(self, enabled):
+        """Change preview only; the acquisition buffers remain untouched."""
+        if QThread.currentThread() != self.thread():
+            raise RuntimeError("Change preview overlap through a queued signal")
+        try:
+            rois, tiles = {}, []
+            if enabled and self._cameras:
+                if self._preview_geometry_error:
+                    raise ValueError(self._preview_geometry_error)
+                sizes = {(camera.frame_buffer.frame.shape[1],
+                          camera.frame_buffer.frame.shape[0])
+                         for camera in self._cameras.values()}
+                if len(sizes) != 1:
+                    raise ValueError("Overlap preview requires the same frame size for all cameras")
+                cached_rois, rectangles = self._prepare_preview_geometry(next(iter(sizes)))
+                for index, key in enumerate(self._cameras):
+                    if key not in cached_rois:
+                        raise ValueError(f"Missing preview position for {key} in config/settings.py")
+                    rois[key] = cached_rois[key]
+                    tiles.append({"index": index, "rect": rectangles[key]})
+            self._preview_overlap = enabled
+            self._preview_rois = rois
+            self.preview_layout_changed.emit({"success": True, "enabled": enabled,
+                                              "tiles": tiles, "error": None})
+        except Exception as error:
+            # Do not keep stale crop rectangles after a frame-size change.
+            self._preview_overlap = False
+            self._preview_rois = {}
+            self.preview_layout_changed.emit({"success": False, "enabled": False,
+                                              "tiles": [], "error": str(error)})
+        if self._cameras:
+            self._process_frames(force=True)
+
     @Slot(dict)
     def apply_settings(self, pending_settings):
         """Apply GenApi values with acquisition stopped; always publish actual values.
@@ -502,6 +562,7 @@ class DeviceManager(QObject):
                     except Exception as error:
                         errors.append(f"{key}: buffer update failed: {error}")
             self._applying_settings = False
+            self.set_preview_overlap(self._preview_overlap)
             self.emit_camera_settings()
             if resume and stopped and not errors:
                 self.start_capture()
@@ -563,51 +624,56 @@ class DeviceManager(QObject):
             self.stop_finished.emit({"success": False, "error": str(error)})
 
     @Slot()
-    def _process_frames(self):
+    def _process_frames(self, force=False):
         errors = []
         for index, (key, camera) in enumerate(self._cameras.items()):
             try:
                 if camera.error is not None:
                     errors.append(f"{key}: {camera.error}")
                     continue
-                frame_buffer = camera.frame_buffer
+                if self._inspection_enabled:
+                    pass
+                else:
+                    frame_buffer = camera.frame_buffer
 
-                with frame_buffer.lock:
-                    frame_number = frame_buffer.frame_number
-                    timestamp = frame_buffer.timestamp
-                    prev_frame_number, prev_timestamp = self._previous_frame_info.get(key)
-                    if frame_number == 0 or timestamp is None:
-                        image = QImage()
-                        fps = 0.0
-                    else:
-                        if prev_timestamp is not None and frame_number == prev_frame_number:
-                            continue
-                
-                        elapsed = timestamp - prev_timestamp
-                        if elapsed <= 0:
-                            continue
-                        fps = (frame_number - prev_frame_number) / elapsed
-                
+                    with frame_buffer.lock:
+                        frame_number = frame_buffer.frame_number
+                        timestamp = frame_buffer.timestamp
+                        prev_frame_number, prev_timestamp = self._previous_frame_info.get(key, (0, 0.0))
+                        if frame_number == 0 or timestamp is None:
+                            image = QImage()
+                            fps = 0.0
+                        else:
+                            if not force and prev_timestamp is not None and frame_number == prev_frame_number:
+                                continue
 
-                        frame = frame_buffer.frame
-                        height, width = frame.shape[:2]
+                            elapsed = timestamp - prev_timestamp
+                            if elapsed <= 0 and not force:
+                                continue
+                            fps = (frame_number - prev_frame_number) / elapsed if elapsed > 0 else 0.0
 
-                        image = QImage(
-                            frame.data,
-                            width, height,
-                            frame.strides[0],
-                            (QImage.Format.Format_RGB888 if camera.pixel_format == "RGB8"
-                             else QImage.Format.Format_Grayscale8),
-                        )
-                        if width > 640 or height > 480:
-                            image = image.scaled(
-                                640, 480,
-                                Qt.AspectRatioMode.KeepAspectRatio,
-                                Qt.TransformationMode.FastTransformation,
+
+                            frame = frame_buffer.frame
+                            height, width = frame.shape[:2]
+
+                            image = QImage(
+                                frame.data,
+                                width, height,
+                                frame.strides[0],
+                                (QImage.Format.Format_RGB888 if camera.pixel_format == "RGB8"
+                                 else QImage.Format.Format_Grayscale8),
                             )
-                        image = image.copy()
-                        self._previous_frame_info[key] = (frame_number, timestamp)
-                self.frame_received.emit(index, image, fps)
+                            if self._preview_overlap and key in self._preview_rois:
+                                image = image.copy(*self._preview_rois[key])
+                            if image.width() > 640 or image.height() > 640:
+                                image = image.scaled(
+                                    640, 640,
+                                    Qt.AspectRatioMode.KeepAspectRatio,
+                                    Qt.TransformationMode.FastTransformation,
+                                )
+                            image = image.copy()
+                            self._previous_frame_info[key] = (frame_number, timestamp)
+                    self.frame_received.emit(index, image, fps)
             except Exception as error:
                 errors.append(f"{key}: {error}")
         if errors:
@@ -662,6 +728,7 @@ class DeviceManager(QObject):
             return
         try:
             self._release_cameras()
+            self.set_preview_overlap(self._preview_overlap)
         except Exception as error:
             self.disconnect_finished.emit({"success": False, "error": str(error)})
         else:

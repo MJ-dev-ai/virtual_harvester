@@ -33,13 +33,14 @@ SETTING_WIDGETS = {
     "TriggerSelector": "comboTriggerSelector",
     "TriggerSource": "comboTriggerSource",
     "TriggerActivation": "comboTriggerActivation",
+    "PreviewOverlap": "checkPreviewOverlap",
     "Apply": "buttonApply",
     "Close": "buttonClose",
 }
 
 # These controls are part of the dialog, not GenApi setting nodes.
 DIALOG_WIDGETS = {
-    "Camera", "State", "ExposureTimeSlider", "GainSlider", "Apply", "Close",
+    "Camera", "State", "ExposureTimeSlider", "GainSlider", "Apply", "Close", "PreviewOverlap",
 }
 
 
@@ -83,6 +84,7 @@ class SettingsDialog(QDialog):
     """
 
     apply_requested = Signal(dict)
+    preview_overlap_requested = Signal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -101,6 +103,8 @@ class SettingsDialog(QDialog):
         self.state_label = self.widgets["State"]
         self.apply_button = self.widgets["Apply"]
         self.close_button = self.widgets["Close"]
+        self.overlap_check = self.widgets["PreviewOverlap"]
+        self.overlap_check.toggled.connect(self.preview_overlap_requested.emit)
         # Enter commits field input without activating a dialog button.
         for button in (self.apply_button, self.close_button):
             button.setAutoDefault(False)
@@ -145,9 +149,17 @@ class SettingsDialog(QDialog):
             self.camera_combo.setCurrentIndex(0 if self.groups else -1)
         self.camera_combo.setEnabled(bool(self.groups))
         self.apply_button.setEnabled(bool(self.groups))
+        self.overlap_check.setEnabled(bool(self.groups))
         self._select_group(self.camera_combo.currentIndex())
         self.state_label.setText("Connected" if self.groups else "Disconnected")
         self.state_label.setToolTip(result.get("error") or "")
+
+    @Slot(dict)
+    def on_preview_layout_changed(self, result):
+        with QSignalBlocker(self.overlap_check):
+            self.overlap_check.setChecked(result["enabled"])
+        self.overlap_check.setToolTip(result.get("error") or
+                                     "Remove overlap using config/settings.py (preview only)")
 
     @Slot(dict)
     def on_disconnected(self, result):
