@@ -34,7 +34,7 @@ python main.py --virtual False --real-cti /absolute/path/to/vendor.cti
 
 # 가상 CTI 위치와 미리보기 전송 FPS 지정
 python main.py --virtual True \
-  --virtual-cti /absolute/path/to/VirtualFG.cti --preview-fps 15
+  --virtual-cti /absolute/path/to/VirtualFG.cti --preview-fps 30
 ```
 
 | 옵션 | 기본값 | 용도 |
@@ -42,7 +42,7 @@ python main.py --virtual True \
 | `--virtual` | `True` | 초기 모드 선택, `True` 또는 `False` |
 | `--virtual-cti` | `externals/virtualfg/VirtualFG.cti` | 가상 CTI 경로 |
 | `--real-cti`, `--cti` | 없음 | 제조사 CTI 경로 |
-| `--preview-fps` | `15` | 카메라별 미리보기 전송 상한, 0 초과 120 이하 |
+| `--preview-fps` | `30` | 카메라별 미리보기 전송 상한, 0 초과 120 이하 |
 
 모드는 GUI 초기 상태에서 선택합니다. 실제 모드로 시작하려면 `--real-cti`가 필요합니다.
 가상 모드로 시작해 GUI에서 Hardware를 선택할 경우에도 실제 CTI 경로를 미리 전달해야 합니다.
@@ -191,20 +191,21 @@ GUI 연결 요청은 `{"framegrabbers": self.framegrabbers}`이며 컨트롤러�
 완료 신호는 공통 형식의 dict를 전달합니다.
 
 ```python
-{"success": True, "error": None, "state": "CONNECTED"}
-{"success": False, "error": "오류 원인", "state": "SEARCHED"}
+{"success": True, "error": None}
+{"success": False, "error": "오류 원인"}
 ```
 
 검색 결과에는 `framegrabbers`가 추가되고 성공 시 `virtual`도 포함됩니다.
 각 보드는 `id`, `display_name`, `cameras`, 각 카메라는 `id`, `serial_number`,
 `user_defined_name`, `vendor`, `model` 정보를 갖습니다.
-컨트롤러는 매니저 결과의 `state`를 GUI에 최종 반영합니다.
+완료 결과에는 `state`를 포함하지 않습니다. MainWindow가 동작 종류와 `success`에 따라
+GUI 상태를 결정하며, 컨트롤러는 결과를 전달합니다.
 
 | 동작 | 성공 후 상태 | 실패 시 처리 |
 |---|---|---|
-| 검색 | `SEARCHED` | 검색 실패는 `INITIAL`, 잘못된 요청 순서는 기존 상태 유지 |
-| 연결 | `CONNECTED` | 열린 장치를 정리해 `SEARCHED`, 정리 실패는 `ERROR` |
-| 시작 | `ACQUIRING` | 부분 시작된 장치를 정리해 `SEARCHED`, 정리 실패는 `ERROR` |
+| 검색 | `SEARCHED` | `INITIAL` |
+| 연결 | `CONNECTED` | `ERROR`로 표시하고 연결 해제 후 재시도 |
+| 시작 | `ACQUIRING` | `ERROR`로 표시하고 연결 해제 후 재연결 |
 | 정지 | `CONNECTED` | 부분 정지 실패는 `ERROR` |
 | 연결 해제 | `SEARCHED` | 부분 해제 실패는 `ERROR` |
 
@@ -218,7 +219,7 @@ GUI는 초기 `INITIAL` 및 연결·시작 진행 상태 `CONNECTING`, `STARTING
 - 인덱스는 연결 요청의 보드/카메라 순서대로 0부터 부여합니다.
 - 컨트롤러는 GUI 슬롯 `on_frame_received(index, fps, image)`에 맞춰 인자 순서를 바꿉니다.
 - 매니저가 버퍼 반환 전에 QImage를 복사·축소하며 GUI 스레드에서 QPixmap으로 변환합니다.
-- 기본 미리보기 크기는 최대 640×480, 전송 상한은 카메라별 15 FPS입니다.
+- 기본 미리보기 크기는 최대 640×480, 전송 상한은 카메라별 30 FPS입니다.
 - 수신 FPS는 약 1초 간격으로 계산하며 첫 측정 전과 정지 후에는 0입니다.
   `fps_updated(float)`는 연결된 카메라당 평균 수신 FPS입니다.
 - 연속 취득으로 사용하며 해당 노드가 있으면 `AcquisitionMode=Continuous`, `TriggerMode=Off`로 설정합니다.
@@ -250,6 +251,8 @@ python native/virtualfg/build.py --debug
 노드를 제공합니다. `DeviceSerialNumber`, 읽기 전용 `DeviceUserID`는 JSON을 반영합니다.
 영상 생성 환경변수는 `VFG_TILE_WIDTH`, `VFG_TILE_HEIGHT`, `VFG_STEP_PIXELS`,
 `VFG_CIRCLE_COUNT`, `VFG_CIRCLE_RADIUS`, `VFG_SCENE_PGM`입니다.
+가상 카메라의 기본 취득 속도는 30 FPS이며, 원의 기본 이동량은 프레임당 3픽셀입니다. `VFG_STEP_PIXELS=12 python main.py`처럼
+실행하면 이동 속도를 더 높일 수 있습니다(범위 -64~64, 음수는 방향 반전, 0은 정지).
 장면의 행은 보드 순서, 열은 보드 내 카메라 순서이며 전체 열 수는 보드별 카메라 수의 최댓값입니다.
 장치 개수는 환경변수가 아닌 JSON에서 지정합니다.
 

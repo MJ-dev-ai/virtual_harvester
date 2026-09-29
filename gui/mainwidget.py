@@ -18,7 +18,7 @@ class State(Enum):
     ERROR = auto()
 
 class MainWindow(QMainWindow):
-    search_requested = Signal()
+    search_requested = Signal(dict)
     connect_requested = Signal(dict)
     start_requested = Signal()
     stop_requested = Signal()
@@ -71,15 +71,23 @@ class MainWindow(QMainWindow):
         self.mode_combo.setEnabled(self.state == State.INITIAL)
         self.search_device_btn.setEnabled(self.state in (State.INITIAL, State.SEARCHED))
         self.connect_device_btn.setEnabled(self.state == State.SEARCHED and has_cameras)
-        self.disconnect_device_btn.setEnabled(self.state == State.CONNECTED)
+        self.disconnect_device_btn.setEnabled(self.state in (State.CONNECTED, State.ERROR))
         self.start_capture_btn.setEnabled(self.state == State.CONNECTED)
         self.stop_capture_btn.setEnabled(self.state == State.ACQUIRING)
         self.device_state_label.setText(self.state.name)
+        if self.state != State.ACQUIRING:
+            self.fps_lists = [0.0] * len(self.fps_lists)
+            self.on_fps_updated(0.0)
     
     @Slot()
     def search_device(self):
         self.update_ui_state()
-        self.search_requested.emit()
+        self.fps_lists = []
+        self.on_fps_updated(0.0)
+        for label in self.camera_labels:
+            label.clear()
+            label.setText("No signal")
+        self.search_requested.emit({"virtual": self.mode_combo.currentIndex() == 0})
     
     @Slot(dict)
     def on_search_finished(self, result: dict):
@@ -127,12 +135,15 @@ class MainWindow(QMainWindow):
             return
         self.state = State.CONNECTING
         self.update_ui_state()
-        self.connect_requested.emit({"framegrabbers": self.framegrabbers})
+        self.connect_requested.emit({
+            "framegrabbers": self.framegrabbers,
+            "virtual": self.mode_combo.currentIndex() == 0,
+        })
 
     @Slot(dict)
     def on_connect_finished(self, result: dict):
         if not result["success"]:
-            self.state = State.SEARCHED
+            self.state = State.ERROR
             self.append_log(result.get("error") or "Connection failed.")
             self.update_ui_state()
             return
@@ -148,7 +159,7 @@ class MainWindow(QMainWindow):
     @Slot(dict)
     def on_disconnect_finished(self, result: dict):
         if not result["success"]:
-            self.state = State.CONNECTED
+            self.state = State.ERROR
             self.append_log(result.get("error") or "Disconnection failed.")
             self.update_ui_state()
             return
@@ -160,12 +171,14 @@ class MainWindow(QMainWindow):
     def start_capture(self):
         self.state = State.STARTING
         self.update_ui_state()
+        self.fps_lists = [0.0] * len(self.fps_lists)
+        self.on_fps_updated(0.0)
         self.start_requested.emit()
 
     @Slot(dict)
     def on_start_finished(self, result: dict):
         if not result["success"]:
-            self.state = State.CONNECTED
+            self.state = State.ERROR
             self.append_log(result.get("error") or "Start capture failed.")
             self.update_ui_state()
             return
@@ -181,7 +194,7 @@ class MainWindow(QMainWindow):
     @Slot(dict)
     def on_stop_finished(self, result: dict):
         if not result["success"]:
-            self.state = State.ACQUIRING
+            self.state = State.ERROR
             self.append_log(result.get("error") or "Stop capture failed.")
             self.update_ui_state()
             return
@@ -189,20 +202,50 @@ class MainWindow(QMainWindow):
         self.append_log("Capture Stopped")
         self.update_ui_state()
 
+    @Slot(dict)
+    def on_error_occurred(self, result: dict):
+        if result["success"]:
+            return
+        self.state = State.ERROR
+        self.append_log(result.get("error") or "Acquisition failed")
+        self.update_ui_state()
+
+    @Slot(dict)
+    def on_shutdown_finished(self, result: dict):
+        if result["success"]:
+            self.state = State.INITIAL
+        else:
+            self.state = State.ERROR
+            self.append_log(result.get("error") or "Shutdown failed; close again to retry")
+        self.update_ui_state()
+
     @Slot()
     def clear_log(self):
         self.log_text.clear()
 
-    @Slot(int, float, QImage)
-    def on_frame_received(self, camera_idx: int, fps: float, frame: QImage):
+    @Slot(float)
+    def on_fps_updated(self, fps: float):
+        self.fps_label.setText(f"{fps:.1f} FPS")
+
+    @Slot(int, QImage, float)
+    def on_frame_received(self, camera_idx: int, frame: QImage, fps: float):
         """Display an owned QImage on camera 0..11 in the GUI thread."""
-        if not 0 <= camera_idx < len(self.camera_labels):
+        if self.state != State.ACQUIRING:
             return
-        if not isinstance(frame, QImage) or frame.isNull():
+        if not 0 <= camera_idx < min(len(self.camera_labels), len(self.fps_lists)):
+            return
+        if not isinstance(frame, QImage):
             return
 
         label = self.camera_labels[camera_idx]
-        if label is None or label.contentsRect().size().isEmpty():
+        if label is None:
+            return
+        if frame.isNull():
+            label.clear()
+            self.fps_lists[camera_idx] = 0.0
+            self.on_fps_updated(sum(self.fps_lists) / len(self.fps_lists))
+            return
+        if label.contentsRect().size().isEmpty():
             return
         self.fps_lists[camera_idx] = fps
         average_fps = sum(self.fps_lists) / len(self.fps_lists)

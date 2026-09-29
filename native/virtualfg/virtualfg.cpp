@@ -177,7 +177,7 @@ std::string xml_escape(const std::string& value) {
 struct Scene {
     uint32_t width = 0, height = 0, columns = 4, rows = 3;
     uint32_t tile_width = 640, tile_height = 480;
-    int step = 2;
+    int step = 3;
     uint32_t circles = 2, circle_radius = 0;
     std::vector<uint8_t> pixels;
 };
@@ -194,7 +194,7 @@ struct Object {
     std::shared_ptr<Scene> scene;
     bool enumerated = false, active = false, running = false, locked = false, closed = false;
     uint32_t width = 640, height = 480, trigger = 0;
-    double fps = 15.0, exposure = 1000.0;
+    double fps = 30.0, exposure = 1000.0;
     uint64_t triggers = 0, delivered = 0, remaining = 0, epoch = 0, timestamp = 0, frame = 0;
     uint64_t generated = 0, dropped = 0, underrun = 0;
     GC_ERROR failure = GC_ERR_SUCCESS;
@@ -263,7 +263,7 @@ std::shared_ptr<Scene> load_scene(uint32_t rows, uint32_t columns) {
     auto scene = std::make_shared<Scene>(); scene->rows = rows; scene->columns = columns;
     scene->tile_width = uint32_t(env_integer("VFG_TILE_WIDTH", 640, 1, 8192));
     scene->tile_height = uint32_t(env_integer("VFG_TILE_HEIGHT", 480, 1, 8192));
-    scene->step = int(env_integer("VFG_STEP_PIXELS", 2, -64, 64));
+    scene->step = int(env_integer("VFG_STEP_PIXELS", 3, -64, 64));
     scene->circles = uint32_t(env_integer("VFG_CIRCLE_COUNT", 2, 1, 2));
     scene->circle_radius = uint32_t(env_integer("VFG_CIRCLE_RADIUS", 0, 0, 8192));
     const char* path = std::getenv("VFG_SCENE_PGM");
@@ -320,22 +320,22 @@ std::string xml(Object& o) {
     std::string x = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         "<RegisterDescription ModelName=\"VirtualFG\" VendorName=\"VirtualFG\""
         " StandardNameSpace=\"None\" SchemaMajorVersion=\"1\" SchemaMinorVersion=\"1\" SchemaSubMinorVersion=\"0\""
-        " MajorVersion=\"1\" MinorVersion=\"1\" SubMinorVersion=\"0\""
-        " ProductGuid=\"A2BA40AB-6A73-49FE-9DF8-EF6B61F02F00\" VersionGuid=\"63CD6848-C23D-42F3-9DAA-80E3BD33C5D1\""
+        " MajorVersion=\"1\" MinorVersion=\"1\" SubMinorVersion=\"1\""
+        " ProductGuid=\"A2BA40AB-6A73-49FE-9DF8-EF6B61F02F00\" VersionGuid=\"11FA5A41-4047-4B67-9F92-17A8AD80B55F\""
         " xmlns=\"http://www.genicam.org/GenApi/Version_1_1\">";
     if (o.kind != Kind::Remote) {
-        x += "<Category Name=\"Root\"><pFeature>ModuleName</pFeature></Category>"
+        x += "<Category Name=\"Root\" NameSpace=\"Standard\"><pFeature>ModuleName</pFeature></Category>"
              "<String Name=\"ModuleName\"><Value>" + module(o.kind) + "</Value></String>";
     } else {
         std::vector<std::string> features = {"DeviceVendorName", "DeviceModelName", "DeviceSerialNumber", "DeviceUserID", "Width", "Height",
             "WidthMax", "HeightMax", "OffsetX", "OffsetY", "PixelFormat", "PayloadSize", "AcquisitionMode", "AcquisitionFrameRate",
             "ExposureTime", "TriggerSelector", "TriggerMode", "TriggerSource", "TriggerSoftware", "AcquisitionStart", "AcquisitionStop", "TLParamsLocked",
             "TileColumn", "TileRow", "MosaicColumns", "MosaicRows", "MotionStepPixels", "FrameCounter", "DroppedFrameCount"};
-        x += "<Category Name=\"Root\">";
+        x += "<Category Name=\"Root\" NameSpace=\"Standard\">";
         for (auto& f : features) x += "<pFeature>" + f + "</pFeature>";
         x += "</Category>";
         auto string_node = [&](const std::string& name, const std::string& value) {
-            x += "<String Name=\"" + name + "\"><Value>" + xml_escape(value) + "</Value></String>";
+            x += "<String Name=\"" + name + "\" NameSpace=\"Standard\"><ImposedAccessMode>RO</ImposedAccessMode><Value>" + xml_escape(value) + "</Value></String>";
         };
         const auto& camera = camera_config(o);
         string_node("DeviceVendorName", camera.vendor);
@@ -347,7 +347,9 @@ std::string xml(Object& o) {
             x += "<Integer Name=\"" + entry.first + "\"><Value>" + std::to_string(entry.second) + "</Value></Integer>";
         }
         auto integer = [&](const std::string& name, uint32_t address, uint32_t min, uint32_t max) {
-            x += "<Integer Name=\"" + name + "\"><pValue>" + name + "Reg</pValue><Min>" + std::to_string(min) + "</Min><Max>" +
+            x += "<Integer Name=\"" + name + "\" NameSpace=\"Standard\">";
+            if (name != "TLParamsLocked") x += "<pIsLocked>ConfigurationLockedReg</pIsLocked>";
+            x += "<pValue>" + name + "Reg</pValue><Min>" + std::to_string(min) + "</Min><Max>" +
                 std::to_string(max) + "</Max><Inc>1</Inc></Integer>" + reg(name, address);
         };
         integer("Width", 0, 1, 8192); integer("Height", 4, 1, 8192); integer("TLParamsLocked", 0x4c, 0, 1);
@@ -357,23 +359,33 @@ std::string xml(Object& o) {
                  "</Address><Length>8</Length><AccessMode>RO</AccessMode><pPort>Device</pPort>"
                  "<Cachable>NoCache</Cachable><Sign>Unsigned</Sign><Endianess>LittleEndian</Endianess></IntReg>";
         }
-        x += "<Integer Name=\"WidthMax\"><Value>8192</Value></Integer><Integer Name=\"HeightMax\"><Value>8192</Value></Integer>"
-             "<Integer Name=\"OffsetX\"><Value>0</Value></Integer><Integer Name=\"OffsetY\"><Value>0</Value></Integer>"
-             "<IntSwissKnife Name=\"PayloadSize\"><pVariable Name=\"W\">Width</pVariable><pVariable Name=\"H\">Height</pVariable><Formula>W*H</Formula></IntSwissKnife>";
+        x += "<Integer Name=\"WidthMax\" NameSpace=\"Standard\"><ImposedAccessMode>RO</ImposedAccessMode><Value>8192</Value></Integer>"
+             "<Integer Name=\"HeightMax\" NameSpace=\"Standard\"><ImposedAccessMode>RO</ImposedAccessMode><Value>8192</Value></Integer>"
+             "<Integer Name=\"OffsetX\" NameSpace=\"Standard\"><ImposedAccessMode>RO</ImposedAccessMode><Value>0</Value></Integer>"
+             "<Integer Name=\"OffsetY\" NameSpace=\"Standard\"><ImposedAccessMode>RO</ImposedAccessMode><Value>0</Value></Integer>"
+             "<IntSwissKnife Name=\"PayloadSize\" NameSpace=\"Standard\"><pVariable Name=\"W\">Width</pVariable><pVariable Name=\"H\">Height</pVariable><Formula>W*H</Formula></IntSwissKnife>";
+        // These read-only registers expose the same conditions as GCWritePort.
+        // GenApi clients can query access before attempting a setting/command.
+        x += reg("ConfigurationLocked", 0x60, false, "RO");
+        x += reg("SoftwareTriggerAvailable", 0x64, false, "RO");
         auto enumeration = [&](const std::string& name, uint32_t address, const std::vector<std::pair<std::string, int>>& entries) {
-            x += "<Enumeration Name=\"" + name + "\">";
+            x += "<Enumeration Name=\"" + name + "\" NameSpace=\"Standard\"><pIsLocked>ConfigurationLockedReg</pIsLocked>";
             for (auto& entry : entries) x += "<EnumEntry Name=\"" + entry.first + "\"><Value>" + std::to_string(entry.second) + "</Value></EnumEntry>";
-            x += "<pValue>" + name + "Reg</pValue></Enumeration>" + reg(name, address);
+            x += "<pValue>" + name + "Reg</pValue>";
+            if (name == "TriggerSelector") x += "<pSelected>TriggerMode</pSelected><pSelected>TriggerSource</pSelected><pSelected>TriggerSoftware</pSelected>";
+            x += "</Enumeration>" + reg(name, address);
         };
         enumeration("PixelFormat", 8, {{"Mono8", mono8}});
         enumeration("AcquisitionMode", 12, {{"Continuous", 1}});
         enumeration("TriggerMode", 0x30, {{"Off", 0}, {"On", 1}});
         enumeration("TriggerSource", 0x34, {{"Software", 0}});
         enumeration("TriggerSelector", 0x38, {{"FrameStart", 0}});
-        x += "<Float Name=\"AcquisitionFrameRate\"><pValue>AcquisitionFrameRateReg</pValue><Min>0.1</Min><Max>1000.0</Max><Unit>Hz</Unit></Float>" + reg("AcquisitionFrameRate", 0x20, true);
-        x += "<Float Name=\"ExposureTime\"><pValue>ExposureTimeReg</pValue><Min>1.0</Min><Max>1000000.0</Max><Unit>us</Unit></Float>" + reg("ExposureTime", 0x28, true);
+        x += "<Float Name=\"AcquisitionFrameRate\" NameSpace=\"Standard\"><pIsLocked>ConfigurationLockedReg</pIsLocked><pValue>AcquisitionFrameRateReg</pValue><Min>0.1</Min><Max>1000.0</Max><Unit>Hz</Unit></Float>" + reg("AcquisitionFrameRate", 0x20, true);
+        x += "<Float Name=\"ExposureTime\" NameSpace=\"Standard\"><pIsLocked>ConfigurationLockedReg</pIsLocked><pValue>ExposureTimeReg</pValue><Min>1.0</Min><Max>1000000.0</Max><Unit>us</Unit></Float>" + reg("ExposureTime", 0x28, true);
         for (auto& entry : std::vector<std::pair<std::string, uint32_t>>{{"AcquisitionStart", 0x40}, {"AcquisitionStop", 0x44}, {"TriggerSoftware", 0x48}}) {
-            x += "<Command Name=\"" + entry.first + "\"><pValue>" + entry.first + "Reg</pValue><CommandValue>1</CommandValue></Command>" + reg(entry.first, entry.second);
+            x += "<Command Name=\"" + entry.first + "\" NameSpace=\"Standard\">";
+            if (entry.first == "TriggerSoftware") x += "<pIsAvailable>SoftwareTriggerAvailableReg</pIsAvailable>";
+            x += "<pValue>" + entry.first + "Reg</pValue><CommandValue>1</CommandValue></Command>" + reg(entry.first, entry.second);
         }
     }
     return x + "<Port Name=\"Device\"/></RegisterDescription>";
@@ -382,7 +394,7 @@ void set_xml(const std::shared_ptr<Object>& o) { o->xml = xml(*o); }
 std::string url(Object& o) {
     std::ostringstream s;
     // IDs may contain punctuation or Unicode; never put them in a local URL.
-    s << "local:VirtualFG_v05_" << module(o.kind) << "_" << uintptr_t(o.handle) << ".xml;" << std::hex << xml_address << ";" << o.xml.size();
+    s << "local:VirtualFG_v051_" << module(o.kind) << "_" << uintptr_t(o.handle) << ".xml;" << std::hex << xml_address << ";" << o.xml.size();
     return s.str();
 }
 void tl_info(int cmd, Info info) {
@@ -390,7 +402,7 @@ void tl_info(int cmd, Info info) {
         case TL_INFO_ID: info.text("VirtualFG"); break;
         case TL_INFO_VENDOR: info.text("VirtualFG"); break;
         case TL_INFO_MODEL: info.text("SoftwareGenTL"); break;
-        case TL_INFO_VERSION: info.text("0.5.0"); break;
+        case TL_INFO_VERSION: info.text("0.5.1"); break;
         case TL_INFO_TLTYPE: info.text("Custom"); break;
         case TL_INFO_NAME: info.text("VirtualFG.cti"); break;
         case TL_INFO_PATHNAME: info.text(library_path().string()); break;
@@ -556,7 +568,8 @@ void impl_GCGetPortURLInfo(Lock&, PORT_HANDLE h, uint32_t index, URL_INFO_CMD cm
     switch (cmd) {
         case URL_INFO_URL: info.text(url(*o)); break;
         case URL_INFO_SCHEMA_VER_MAJOR: case URL_INFO_SCHEMA_VER_MINOR: case URL_INFO_FILE_VER_MAJOR: case URL_INFO_FILE_VER_MINOR: info.i32(1); break;
-        case URL_INFO_FILE_VER_SUBMINOR: case URL_INFO_SCHEME: info.i32(0); break;
+        case URL_INFO_FILE_VER_SUBMINOR: info.i32(1); break;
+        case URL_INFO_SCHEME: info.i32(0); break;
         case URL_INFO_FILE_REGISTER_ADDRESS: info.u64(xml_address); break;
         case URL_INFO_FILE_SIZE: info.u64(o->xml.size()); break;
         default: fail(GC_ERR_NOT_IMPLEMENTED, "Unsupported URL information");
@@ -572,7 +585,7 @@ void impl_GCGetPortInfo(Lock&, PORT_HANDLE h, PORT_INFO_CMD cmd, INFO_ARGS) {
         case PORT_INFO_LITTLE_ENDIAN: case PORT_INFO_ACCESS_READ: info.flag(true); break;
         case PORT_INFO_ACCESS_WRITE: info.flag(o->kind == Kind::Remote); break;
         case PORT_INFO_BIG_ENDIAN: case PORT_INFO_ACCESS_NA: case PORT_INFO_ACCESS_NI: info.flag(false); break;
-        case PORT_INFO_VERSION: info.text("0.5.0"); break;
+        case PORT_INFO_VERSION: info.text("0.5.1"); break;
         case PORT_INFO_PORTNAME: info.text("Device"); break;
         default: fail(GC_ERR_NOT_IMPLEMENTED, "Unsupported port information");
     }
@@ -585,11 +598,15 @@ void impl_GCReadPort(Lock&, PORT_HANDLE h, uint64_t address, void* output, size_
         std::memcpy(output, o->xml.data() + offset, *size); return;
     }
     require(o->kind == Kind::Remote, GC_ERR_INVALID_ADDRESS, "Module has no register at this address");
-    std::array<uint8_t, 0x60> regs{};
+    bool stream_running = false;
+    for (auto& e : objects) if (e.second->kind == Kind::Stream && e.second->remote == h && e.second->running) stream_running = true;
+    std::array<uint8_t, 0x68> regs{};
     auto put = [&](size_t pos, auto value) { std::memcpy(regs.data() + pos, &value, sizeof(value)); };
     put(0, o->width); put(4, o->height); put(8, mono8); put(12, uint32_t(1));
     put(0x20, o->fps); put(0x28, o->exposure); put(0x30, o->trigger); put(0x4c, uint32_t(o->locked));
     put(0x50, o->frame); put(0x58, o->dropped);
+    put(0x60, uint32_t(o->locked || stream_running || o->active));
+    put(0x64, uint32_t(o->trigger == 1 && o->active && stream_running && o->triggers < 1024));
     require(address <= regs.size() && *size <= regs.size() - address, GC_ERR_INVALID_ADDRESS, "Register read outside address range");
     std::memcpy(output, regs.data() + address, *size);
 }
