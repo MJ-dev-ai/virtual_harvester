@@ -101,6 +101,10 @@ class SettingsDialog(QDialog):
         self.state_label = self.widgets["State"]
         self.apply_button = self.widgets["Apply"]
         self.close_button = self.widgets["Close"]
+        # Enter commits field input without activating a dialog button.
+        for button in (self.apply_button, self.close_button):
+            button.setAutoDefault(False)
+            button.setDefault(False)
         self.feature_widgets = {
             key: widget for key, widget in self.widgets.items()
             if key not in DIALOG_WIDGETS
