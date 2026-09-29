@@ -40,3 +40,6 @@ Thumbs.db
 
 # User Docs
 commit_message.md
+
+# Test Codes
+tests/
