@@ -10,14 +10,14 @@
     <height>900</height>
    </rect>
   </property>
-  <property name="windowTitle">
-   <string>Camera Manager</string>
-  </property>
   <property name="minimumSize">
    <size>
     <width>1040</width>
     <height>600</height>
    </size>
+  </property>
+  <property name="windowTitle">
+   <string>Camera Manager</string>
   </property>
   <layout class="QHBoxLayout" name="mainLayout" stretch="1,0">
    <property name="spacing">
@@ -41,10 +41,7 @@
       <string>Camera Previews</string>
      </property>
      <layout class="QGridLayout" name="previewsLayout" rowstretch="1,1,1" columnstretch="1,1,1,1">
-      <property name="horizontalSpacing">
-       <number>8</number>
-      </property>
-      <property name="verticalSpacing">
+      <property name="spacing">
        <number>8</number>
       </property>
       <item row="0" column="0">
@@ -79,20 +76,20 @@
              <height>72</height>
             </size>
            </property>
+           <property name="accessibleName">
+            <string>Camera 01 preview</string>
+           </property>
            <property name="styleSheet">
             <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
            </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
            <property name="scaledContents">
             <bool>false</bool>
            </property>
-           <property name="accessibleName">
-            <string>Camera 01 preview</string>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -131,20 +128,20 @@
              <height>72</height>
             </size>
            </property>
+           <property name="accessibleName">
+            <string>Camera 02 preview</string>
+           </property>
            <property name="styleSheet">
             <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
            </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
            <property name="scaledContents">
             <bool>false</bool>
            </property>
-           <property name="accessibleName">
-            <string>Camera 02 preview</string>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -183,20 +180,20 @@
              <height>72</height>
             </size>
            </property>
+           <property name="accessibleName">
+            <string>Camera 03 preview</string>
+           </property>
            <property name="styleSheet">
             <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
            </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
            <property name="scaledContents">
             <bool>false</bool>
            </property>
-           <property name="accessibleName">
-            <string>Camera 03 preview</string>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -235,20 +232,20 @@
              <height>72</height>
             </size>
            </property>
+           <property name="accessibleName">
+            <string>Camera 04 preview</string>
+           </property>
            <property name="styleSheet">
             <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
            </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
            <property name="scaledContents">
             <bool>false</bool>
            </property>
-           <property name="accessibleName">
-            <string>Camera 04 preview</string>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -287,20 +284,20 @@
              <height>72</height>
             </size>
            </property>
+           <property name="accessibleName">
+            <string>Camera 05 preview</string>
+           </property>
            <property name="styleSheet">
             <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
            </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
            <property name="scaledContents">
             <bool>false</bool>
            </property>
-           <property name="accessibleName">
-            <string>Camera 05 preview</string>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -339,20 +336,20 @@
              <height>72</height>
             </size>
            </property>
+           <property name="accessibleName">
+            <string>Camera 06 preview</string>
+           </property>
            <property name="styleSheet">
             <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
            </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
            <property name="scaledContents">
             <bool>false</bool>
            </property>
-           <property name="accessibleName">
-            <string>Camera 06 preview</string>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -391,20 +388,20 @@
              <height>72</height>
             </size>
            </property>
+           <property name="accessibleName">
+            <string>Camera 07 preview</string>
+           </property>
            <property name="styleSheet">
             <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
            </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
            <property name="scaledContents">
             <bool>false</bool>
            </property>
-           <property name="accessibleName">
-            <string>Camera 07 preview</string>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -443,20 +440,20 @@
              <height>72</height>
             </size>
            </property>
+           <property name="accessibleName">
+            <string>Camera 08 preview</string>
+           </property>
            <property name="styleSheet">
             <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
            </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
            <property name="scaledContents">
             <bool>false</bool>
            </property>
-           <property name="accessibleName">
-            <string>Camera 08 preview</string>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -495,20 +492,20 @@
              <height>72</height>
             </size>
            </property>
+           <property name="accessibleName">
+            <string>Camera 09 preview</string>
+           </property>
            <property name="styleSheet">
             <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
            </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
            <property name="scaledContents">
             <bool>false</bool>
            </property>
-           <property name="accessibleName">
-            <string>Camera 09 preview</string>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -547,20 +544,20 @@
              <height>72</height>
             </size>
            </property>
+           <property name="accessibleName">
+            <string>Camera 10 preview</string>
+           </property>
            <property name="styleSheet">
             <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
            </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
            <property name="scaledContents">
             <bool>false</bool>
            </property>
-           <property name="accessibleName">
-            <string>Camera 10 preview</string>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -599,20 +596,20 @@
              <height>72</height>
             </size>
            </property>
+           <property name="accessibleName">
+            <string>Camera 11 preview</string>
+           </property>
            <property name="styleSheet">
             <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
            </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
            <property name="scaledContents">
             <bool>false</bool>
            </property>
-           <property name="accessibleName">
-            <string>Camera 11 preview</string>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -651,20 +648,20 @@
              <height>72</height>
             </size>
            </property>
+           <property name="accessibleName">
+            <string>Camera 12 preview</string>
+           </property>
            <property name="styleSheet">
             <string notr="true">background-color: #181c22; color: #aeb7c4; border-radius: 4px;</string>
            </property>
            <property name="text">
             <string>No signal</string>
            </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
            <property name="scaledContents">
             <bool>false</bool>
            </property>
-           <property name="accessibleName">
-            <string>Camera 12 preview</string>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -689,18 +686,26 @@
       </size>
      </property>
      <property name="frameShape">
-      <enum>QFrame::NoFrame</enum>
+      <enum>QFrame::Shape::NoFrame</enum>
+     </property>
+     <property name="verticalScrollBarPolicy">
+      <enum>Qt::ScrollBarPolicy::ScrollBarAsNeeded</enum>
+     </property>
+     <property name="horizontalScrollBarPolicy">
+      <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
      </property>
      <property name="widgetResizable">
       <bool>true</bool>
      </property>
-     <property name="horizontalScrollBarPolicy">
-      <enum>Qt::ScrollBarAlwaysOff</enum>
-     </property>
-     <property name="verticalScrollBarPolicy">
-      <enum>Qt::ScrollBarAsNeeded</enum>
-     </property>
      <widget class="QWidget" name="controlPanelContents">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>346</width>
+        <height>881</height>
+       </rect>
+      </property>
       <layout class="QVBoxLayout" name="controlPanelLayout">
        <property name="spacing">
         <number>10</number>
@@ -752,11 +757,11 @@
           </item>
           <item row="1" column="0" colspan="2">
            <widget class="QPushButton" name="buttonSearch">
-            <property name="text">
-             <string>Search</string>
-            </property>
             <property name="toolTip">
              <string>Search using the default CTI for the selected mode.</string>
+            </property>
+            <property name="text">
+             <string>Search</string>
             </property>
            </widget>
           </item>
@@ -771,17 +776,32 @@
          <layout class="QVBoxLayout" name="devicesLayout">
           <item>
            <widget class="QTreeWidget" name="treeDevices">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>170</height>
+             </size>
+            </property>
+            <property name="accessibleName">
+             <string>Discovered frame grabbers and cameras</string>
+            </property>
+            <property name="horizontalScrollBarPolicy">
+             <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
+            </property>
+            <property name="editTriggers">
+             <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+            </property>
             <property name="alternatingRowColors">
              <bool>true</bool>
             </property>
-            <property name="editTriggers">
-             <set>QAbstractItemView::NoEditTriggers</set>
-            </property>
             <property name="selectionMode">
-             <enum>QAbstractItemView::SingleSelection</enum>
+             <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
             </property>
             <property name="selectionBehavior">
-             <enum>QAbstractItemView::SelectRows</enum>
+             <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+            </property>
+            <property name="textElideMode">
+             <enum>Qt::TextElideMode::ElideRight</enum>
             </property>
             <property name="uniformRowHeights">
              <bool>true</bool>
@@ -789,9 +809,12 @@
             <property name="allColumnsShowFocus">
              <bool>true</bool>
             </property>
-            <property name="accessibleName">
-             <string>Discovered frame grabbers and cameras</string>
-            </property>
+            <attribute name="headerMinimumSectionSize">
+             <number>35</number>
+            </attribute>
+            <attribute name="headerDefaultSectionSize">
+             <number>65</number>
+            </attribute>
             <column>
              <property name="text">
               <string>Device</string>
@@ -807,24 +830,6 @@
               <string>Serial number</string>
              </property>
             </column>
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>170</height>
-             </size>
-            </property>
-            <property name="horizontalScrollBarPolicy">
-             <enum>Qt::ScrollBarAlwaysOff</enum>
-            </property>
-            <property name="textElideMode">
-             <enum>Qt::ElideRight</enum>
-            </property>
-            <attribute name="headerDefaultSectionSize">
-             <number>65</number>
-            </attribute>
-            <attribute name="headerMinimumSectionSize">
-             <number>35</number>
-            </attribute>
            </widget>
           </item>
           <item>
@@ -851,11 +856,11 @@
             <property name="enabled">
              <bool>false</bool>
             </property>
-            <property name="text">
-             <string>Connect</string>
-            </property>
             <property name="toolTip">
              <string>Connect to the selected camera.</string>
+            </property>
+            <property name="text">
+             <string>Connect</string>
             </property>
            </widget>
           </item>
@@ -874,11 +879,11 @@
             <property name="enabled">
              <bool>false</bool>
             </property>
-            <property name="text">
-             <string>Start</string>
-            </property>
             <property name="toolTip">
              <string>Start acquisition on the connected camera.</string>
+            </property>
+            <property name="text">
+             <string>Start</string>
             </property>
            </widget>
           </item>
@@ -887,11 +892,24 @@
             <property name="enabled">
              <bool>false</bool>
             </property>
+            <property name="toolTip">
+             <string>Stop acquisition.</string>
+            </property>
             <property name="text">
              <string>Stop</string>
             </property>
+           </widget>
+          </item>
+          <item row="2" column="0" colspan="2">
+           <widget class="QPushButton" name="buttonSettings">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
             <property name="toolTip">
-             <string>Stop acquisition.</string>
+             <string>Open camera settings.</string>
+            </property>
+            <property name="text">
+             <string>Settings…</string>
             </property>
            </widget>
           </item>
@@ -918,11 +936,11 @@
               <bold>true</bold>
              </font>
             </property>
-            <property name="text">
-             <string>Disconnected</string>
-            </property>
             <property name="accessibleName">
              <string>Current camera state</string>
+            </property>
+            <property name="text">
+             <string>Disconnected</string>
             </property>
            </widget>
           </item>
@@ -942,7 +960,7 @@
              <bool>true</bool>
             </property>
             <property name="textInteractionFlags">
-             <set>Qt::TextSelectableByMouse</set>
+             <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
             </property>
            </widget>
           </item>
@@ -955,11 +973,11 @@
           </item>
           <item row="3" column="1">
            <widget class="QLabel" name="labelFps">
-            <property name="text">
-             <string>0.0 FPS</string>
-            </property>
             <property name="accessibleName">
              <string>Frame rate</string>
+            </property>
+            <property name="text">
+             <string>0.0 FPS</string>
             </property>
            </widget>
           </item>
@@ -974,6 +992,21 @@
          <layout class="QVBoxLayout" name="logLayout">
           <item>
            <widget class="QPlainTextEdit" name="editLog">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>150</height>
+             </size>
+            </property>
+            <property name="accessibleName">
+             <string>Camera activity log</string>
+            </property>
+            <property name="horizontalScrollBarPolicy">
+             <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
+            </property>
+            <property name="lineWrapMode">
+             <enum>QPlainTextEdit::LineWrapMode::WidgetWidth</enum>
+            </property>
             <property name="readOnly">
              <bool>true</bool>
             </property>
@@ -983,21 +1016,6 @@
             <property name="placeholderText">
              <string>Discovery, connection, acquisition and error messages appear here.</string>
             </property>
-            <property name="accessibleName">
-             <string>Camera activity log</string>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>150</height>
-             </size>
-            </property>
-            <property name="horizontalScrollBarPolicy">
-             <enum>Qt::ScrollBarAlwaysOff</enum>
-            </property>
-            <property name="lineWrapMode">
-             <enum>QPlainTextEdit::WidgetWidth</enum>
-            </property>
            </widget>
           </item>
           <item>
@@ -1005,7 +1023,7 @@
             <item>
              <spacer name="logSpacer">
               <property name="orientation">
-               <enum>Qt::Horizontal</enum>
+               <enum>Qt::Orientation::Horizontal</enum>
               </property>
               <property name="sizeHint" stdset="0">
                <size>
@@ -1044,6 +1062,6 @@
   <tabstop>editLog</tabstop>
   <tabstop>buttonClearLog</tabstop>
  </tabstops>
- <resources />
- <connections />
+ <resources/>
+ <connections/>
 </ui>

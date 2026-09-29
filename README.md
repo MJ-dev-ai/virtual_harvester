@@ -213,6 +213,54 @@ GUI는 초기 `INITIAL` 및 연결·시작 진행 상태 `CONNECTING`, `STARTING
 취득 중 예외는 `error_occurred(dict)`로 전달합니다.
 `ERROR`에서는 연결 해제 또는 종료로 남은 장치를 정리할 수 있습니다.
 
+### 카메라 종류별 설정 창
+
+연결 성공 시 `DeviceManager.emit_camera_settings()`가
+`camera_settings_received(dict)` 신호로 설정 정보를 보냅니다.
+`main.py`는 이 신호를 `gui/settings.py`의
+`SettingsDialog.on_camera_settings_received()`에 연결합니다.
+Settings 버튼으로 여는 창은 `gui/settings.ui`를 `QUiLoader`로 로드합니다.
+
+```python
+{
+    "success": True,
+    "error": None,
+    "groups": [{
+        "vendor": "VirtualFG",
+        "model": "VirtualMono8",
+        "cameras": [
+            {"framegrabber_id": "VFG-0001", "camera_id": "VCAM-0001",
+             "settings": {"ExposureTime": {"value": 1000.0}}},
+            # 같은 제조사·모델의 다른 카메라
+        ],
+        "settings": {
+            "ExposureTime": {
+                "supported": True, "available": True,
+                "readable": True, "writable": True, "type": "float",
+                "value": 1000.0, "mixed": False,
+                "min": 1.0, "max": 1000000.0, "inc": None,
+                "unit": "us", "choices": [], "error": None,
+            },
+            # 나머지 설정 항목
+        },
+    }],
+}
+```
+
+종류 선택 시 해당 그룹의 값·범위·선택지가 반영됩니다. 그룹 내 현재값이 다르면
+`value=None`, `mixed=True`로 보내며 창에는 `Mixed values`로 표시합니다.
+공통 범위와 선택지만 사용하고, 지원하지 않는 항목이나 서로 다른 증분 규칙을
+가진 항목은 편집을 비활성화합니다. 원래 카메라별 값은 `cameras`에 유지됩니다.
+노출·게인은 소수 입력을 지원하고 슬라이더와 양방향으로 동기화됩니다.
+
+사용자 입력은 `draft_values`에 종류별로 저장되어 종류를 전환해도 유지됩니다.
+`pending_settings()`로 대상 카메라 목록과 변경값을 받을 수 있습니다.
+Apply는 창을 닫은 뒤 `apply_requested(dict)`로 GenApi 기능 이름과 실제 enum 값을
+보냅니다. GUI 표시명은 `settings.py`의 매핑으로 분리합니다. DeviceManager는 취득을
+정지하고 설정과 버퍼를 갱신합니다. 적용 중 Start/Disconnect는 비활성화됩니다.
+실패 전 적용된 값은 유지되며, 성공 여부와 실제 설정값을 다시 전달합니다. 새 연결 정보가 오거나 연결이 해제되면
+이전 입력값은 초기화됩니다.
+
 ### 영상과 FPS
 
 - 매니저는 `frame_received(int, QImage, float)`로 카메라 인덱스, 영상, 해당 카메라 수신 FPS를 보냅니다.
@@ -223,8 +271,10 @@ GUI는 초기 `INITIAL` 및 연결·시작 진행 상태 `CONNECTING`, `STARTING
 - 수신 FPS는 약 1초 간격으로 계산하며 첫 측정 전과 정지 후에는 0입니다.
   `fps_updated(float)`는 연결된 카메라당 평균 수신 FPS입니다.
 - 연속 취득으로 사용하며 해당 노드가 있으면 `AcquisitionMode=Continuous`, `TriggerMode=Off`로 설정합니다.
-- 지원 형식은 Mono8, Mono16, RGB8, BGR8, RGBa8의 단일 스트림·단일 컴포넌트입니다.
-  Bayer 및 packed 10/12-bit 변환은 구현되어 있지 않습니다. 가상 CTI는 Mono8을 생성합니다.
+- 지원 형식은 Mono8, RGB8(RGB24)의 단일 스트림·단일 컴포넌트이며 행 패딩은 지원하지 않습니다.
+  Bayer 및 packed 10/12-bit 변환은 구현되어 있지 않습니다. 가상 CTI는 Mono8(기본값)과 RGB8을 생성합니다. Settings의 PixelFormat에서 RGB24를 선택하면
+  RGB 순서의 8비트 3채널 영상으로 바뀌며 원 두 개가 서로 다른 색으로 표시됩니다.
+  카메라 신호와 GenApi 설정에는 표준 이름 `RGB8`을 사용합니다.
 
 창을 닫거나 Ctrl+C를 누르면 매니저 정리를 요청하고 작업 스레드가 종료된 뒤 앱을 닫습니다.
 정리에 실패하면 오류를 표시하고 창 종료를 다시 시도할 수 있습니다.

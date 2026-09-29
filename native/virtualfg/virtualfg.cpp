@@ -181,6 +181,8 @@ struct Scene {
     uint32_t circles = 2, circle_radius = 0;
     std::vector<uint8_t> pixels;
 };
+constexpr uint32_t mono8 = 0x01080001;
+constexpr uint32_t rgb8 = 0x02180014;
 struct Object {
     Kind kind;
     void* handle = nullptr;
@@ -194,6 +196,7 @@ struct Object {
     std::shared_ptr<Scene> scene;
     bool enumerated = false, active = false, running = false, locked = false, closed = false;
     uint32_t width = 640, height = 480, trigger = 0;
+    uint32_t pixel_format = mono8;
     double fps = 30.0, exposure = 1000.0;
     uint64_t triggers = 0, delivered = 0, remaining = 0, epoch = 0, timestamp = 0, frame = 0;
     uint64_t generated = 0, dropped = 0, underrun = 0;
@@ -214,8 +217,9 @@ std::unordered_map<void*, std::shared_ptr<Object>> objects;
 uintptr_t next_handle = 1;
 uint32_t initializations = 0;
 constexpr uint64_t xml_address = 0x10000;
-constexpr size_t max_image = 8192ULL * 8192;
-constexpr uint32_t mono8 = 0x01080001;
+constexpr size_t max_image = 8192ULL * 8192 * 3;
+size_t channels(const Object& d) { return d.pixel_format == rgb8 ? 3 : 1; }
+size_t payload_size(const Object& d) { return size_t(d.width) * d.height * channels(d); }
 std::thread engine_thread;
 bool engine_stop = false, engine_closing = false;
 void engine_main();
@@ -363,7 +367,7 @@ std::string xml(Object& o) {
              "<Integer Name=\"HeightMax\" NameSpace=\"Standard\"><ImposedAccessMode>RO</ImposedAccessMode><Value>8192</Value></Integer>"
              "<Integer Name=\"OffsetX\" NameSpace=\"Standard\"><ImposedAccessMode>RO</ImposedAccessMode><Value>0</Value></Integer>"
              "<Integer Name=\"OffsetY\" NameSpace=\"Standard\"><ImposedAccessMode>RO</ImposedAccessMode><Value>0</Value></Integer>"
-             "<IntSwissKnife Name=\"PayloadSize\" NameSpace=\"Standard\"><pVariable Name=\"W\">Width</pVariable><pVariable Name=\"H\">Height</pVariable><Formula>W*H</Formula></IntSwissKnife>";
+             "<IntSwissKnife Name=\"PayloadSize\" NameSpace=\"Standard\"><pVariable Name=\"W\">Width</pVariable><pVariable Name=\"H\">Height</pVariable><pVariable Name=\"P\">PixelFormatReg</pVariable><Formula>W*H*((P&gt;&gt;16)&amp;255)/8</Formula></IntSwissKnife>";
         // These read-only registers expose the same conditions as GCWritePort.
         // GenApi clients can query access before attempting a setting/command.
         x += reg("ConfigurationLocked", 0x60, false, "RO");
@@ -375,7 +379,7 @@ std::string xml(Object& o) {
             if (name == "TriggerSelector") x += "<pSelected>TriggerMode</pSelected><pSelected>TriggerSource</pSelected><pSelected>TriggerSoftware</pSelected>";
             x += "</Enumeration>" + reg(name, address);
         };
-        enumeration("PixelFormat", 8, {{"Mono8", mono8}});
+        enumeration("PixelFormat", 8, {{"Mono8", mono8}, {"RGB8", rgb8}});
         enumeration("AcquisitionMode", 12, {{"Continuous", 1}});
         enumeration("TriggerMode", 0x30, {{"Off", 0}, {"On", 1}});
         enumeration("TriggerSource", 0x34, {{"Software", 0}});
@@ -394,7 +398,7 @@ void set_xml(const std::shared_ptr<Object>& o) { o->xml = xml(*o); }
 std::string url(Object& o) {
     std::ostringstream s;
     // IDs may contain punctuation or Unicode; never put them in a local URL.
-    s << "local:VirtualFG_v051_" << module(o.kind) << "_" << uintptr_t(o.handle) << ".xml;" << std::hex << xml_address << ";" << o.xml.size();
+    s << "local:VirtualFG_v052_" << module(o.kind) << "_" << uintptr_t(o.handle) << ".xml;" << std::hex << xml_address << ";" << o.xml.size();
     return s.str();
 }
 void tl_info(int cmd, Info info) {
@@ -402,7 +406,7 @@ void tl_info(int cmd, Info info) {
         case TL_INFO_ID: info.text("VirtualFG"); break;
         case TL_INFO_VENDOR: info.text("VirtualFG"); break;
         case TL_INFO_MODEL: info.text("SoftwareGenTL"); break;
-        case TL_INFO_VERSION: info.text("0.5.1"); break;
+        case TL_INFO_VERSION: info.text("0.5.2"); break;
         case TL_INFO_TLTYPE: info.text("Custom"); break;
         case TL_INFO_NAME: info.text("VirtualFG.cti"); break;
         case TL_INFO_PATHNAME: info.text(library_path().string()); break;
@@ -585,7 +589,7 @@ void impl_GCGetPortInfo(Lock&, PORT_HANDLE h, PORT_INFO_CMD cmd, INFO_ARGS) {
         case PORT_INFO_LITTLE_ENDIAN: case PORT_INFO_ACCESS_READ: info.flag(true); break;
         case PORT_INFO_ACCESS_WRITE: info.flag(o->kind == Kind::Remote); break;
         case PORT_INFO_BIG_ENDIAN: case PORT_INFO_ACCESS_NA: case PORT_INFO_ACCESS_NI: info.flag(false); break;
-        case PORT_INFO_VERSION: info.text("0.5.1"); break;
+        case PORT_INFO_VERSION: info.text("0.5.2"); break;
         case PORT_INFO_PORTNAME: info.text("Device"); break;
         default: fail(GC_ERR_NOT_IMPLEMENTED, "Unsupported port information");
     }
@@ -602,7 +606,7 @@ void impl_GCReadPort(Lock&, PORT_HANDLE h, uint64_t address, void* output, size_
     for (auto& e : objects) if (e.second->kind == Kind::Stream && e.second->remote == h && e.second->running) stream_running = true;
     std::array<uint8_t, 0x68> regs{};
     auto put = [&](size_t pos, auto value) { std::memcpy(regs.data() + pos, &value, sizeof(value)); };
-    put(0, o->width); put(4, o->height); put(8, mono8); put(12, uint32_t(1));
+    put(0, o->width); put(4, o->height); put(8, o->pixel_format); put(12, uint32_t(1));
     put(0x20, o->fps); put(0x28, o->exposure); put(0x30, o->trigger); put(0x4c, uint32_t(o->locked));
     put(0x50, o->frame); put(0x58, o->dropped);
     put(0x60, uint32_t(o->locked || stream_running || o->active));
@@ -629,7 +633,7 @@ void impl_GCWritePort(Lock&, PORT_HANDLE h, uint64_t address, const void* input,
                 dimension = value;
                 break;
             }
-            case 8: require(value == mono8, GC_ERR_INVALID_VALUE); break;
+            case 8: require(value == mono8 || value == rgb8, GC_ERR_INVALID_VALUE); o->pixel_format = value; break;
             case 12: require(value == 1, GC_ERR_INVALID_VALUE); break;
             case 0x30: require(value <= 1, GC_ERR_INVALID_VALUE); o->trigger = value; o->triggers = 0; break;
             case 0x34: case 0x38: require(value == 0, GC_ERR_INVALID_VALUE); break;
@@ -659,7 +663,7 @@ void impl_GCWritePortStacked(Lock& lock, PORT_HANDLE h, PORT_REGISTER_STACK_ENTR
 std::shared_ptr<Object> buffer(void* stream, void* h) { get(stream, Kind::Stream); auto b = get(h, Kind::Buffer); require(b->parent == stream, GC_ERR_INVALID_HANDLE, "Buffer belongs to a different stream"); return b; }
 void announce(void* h, void* data, size_t size, void* user, void** handle, bool allocate) {
     require(handle && (allocate || data)); auto s = get(h, Kind::Stream);
-    require(size > 0 && size <= max_image, GC_ERR_INVALID_VALUE, "Buffer size must be from 1 to 64 MiB");
+    require(size > 0 && size <= max_image, GC_ERR_INVALID_VALUE, "Buffer size must be from 1 to 192 MiB");
     require(s->buffers.size() < 64, GC_ERR_RESOURCE_EXHAUSTED, "Maximum of 64 buffers per stream");
     auto b = create(Kind::Buffer, h);
     try {
@@ -699,7 +703,7 @@ void impl_DSStartAcquisition(Lock&, DS_HANDLE h, ACQ_START_FLAGS flags, uint64_t
     auto s = get(h, Kind::Stream); auto d = get(s->remote, Kind::Remote);
     require(flags == ACQ_START_FLAGS_DEFAULT && count > 0); require(!s->running, GC_ERR_RESOURCE_IN_USE, "Stream already started");
     require(s->queue.size() >= 3, GC_ERR_RESOURCE_IN_USE, "Queue at least three buffers before starting");
-    for (auto bh : s->buffers) require(get(bh, Kind::Buffer)->capacity >= size_t(d->width) * d->height, GC_ERR_BUFFER_TOO_SMALL, "Announced buffer is smaller than image payload");
+    for (auto bh : s->buffers) require(get(bh, Kind::Buffer)->capacity >= payload_size(*d), GC_ERR_BUFFER_TOO_SMALL, "Announced buffer is smaller than image payload");
     require(s->output.empty(), GC_ERR_RESOURCE_IN_USE, "Flush old output buffers before restarting");
     s->running = true; s->remaining = count; s->delivered = 0; s->generated = 0; s->dropped = 0; s->underrun = 0; s->frame = 0;
     s->failure = GC_ERR_SUCCESS; s->failure_text = "Success";
@@ -723,7 +727,7 @@ void impl_DSGetInfo(Lock&, DS_HANDLE h, STREAM_INFO_CMD cmd, INFO_ARGS) {
         case STREAM_INFO_NUM_QUEUED: info.sz(s->queue.size()); break;
         case STREAM_INFO_NUM_AWAIT_DELIVERY: info.sz(s->output.size()); break;
         case STREAM_INFO_NUM_CHUNKS_MAX: info.sz(0); break;
-        case STREAM_INFO_PAYLOAD_SIZE: info.sz(size_t(d->width) * d->height); break;
+        case STREAM_INFO_PAYLOAD_SIZE: info.sz(payload_size(*d)); break;
         case STREAM_INFO_IS_GRABBING: info.flag(s->running); break;
         case STREAM_INFO_DEFINES_PAYLOADSIZE: info.flag(true); break;
         case STREAM_INFO_TLTYPE: info.text("Custom"); break;
@@ -750,7 +754,7 @@ void impl_DSGetBufferInfo(Lock&, DS_HANDLE h, BUFFER_HANDLE bh, BUFFER_INFO_CMD 
         case BUFFER_INFO_FRAMEID: info.u64(b->frame); break;
         case BUFFER_INFO_IMAGEPRESENT: info.flag(b->filled != 0); break;
         case BUFFER_INFO_PAYLOADTYPE: info.sz(PAYLOAD_TYPE_IMAGE); break;
-        case BUFFER_INFO_PIXELFORMAT: info.u64(mono8); break;
+        case BUFFER_INFO_PIXELFORMAT: info.u64(b->pixel_format); break;
         case BUFFER_INFO_PIXELFORMAT_NAMESPACE: info.u64(PIXELFORMAT_NAMESPACE_PFNC_32BIT); break;
         case BUFFER_INFO_CHUNKLAYOUTID: info.u64(0); break;
         case BUFFER_INFO_PIXEL_ENDIANNESS: info.i32(PIXELENDIANNESS_LITTLE); break;
@@ -813,7 +817,8 @@ void draw_circles(uint8_t* pixels, Object& d, uint64_t frame) {
     const int64_t tile_x = int64_t(d.camera) * d.width, tile_y = int64_t(d.board) * d.height;
     const int64_t radius2 = int64_t(radius) * radius;
     // Only a linear background write: no full-scene image or lookup cache.
-    std::memset(pixels, 0, size_t(d.width) * d.height);
+    std::memset(pixels, 0, payload_size(d));
+    const size_t components = channels(d);
     for (uint32_t i = 0; i < scene.circles; ++i) {
         const uint32_t initial_x = i == 0 ? width / 5 : width * 4 / 5;
         const uint32_t initial_y = i == 0 ? height / 5 : height * 4 / 5;
@@ -825,7 +830,13 @@ void draw_circles(uint8_t* pixels, Object& d, uint64_t frame) {
         const int64_t top = std::max(tile_y, cy - radius);
         const int64_t bottom = std::min(tile_y + d.height - 1, cy + radius);
         // Apply simulated exposure to two colors, not to every background pixel.
-        const uint8_t value = uint8_t(std::min(255.0, std::round((i == 0 ? 220 : 160) * d.exposure / 1000.0)));
+        const auto exposed = [&](uint8_t value) {
+            return uint8_t(std::min(255.0, std::round(value * d.exposure / 1000.0)));
+        };
+        const uint8_t value = exposed(i == 0 ? 220 : 160);
+        const std::array<uint8_t, 3> color = i == 0 ?
+            std::array<uint8_t, 3>{exposed(220), exposed(60), exposed(30)} :
+            std::array<uint8_t, 3>{exposed(30), exposed(160), exposed(220)};
         for (int64_t gy = top; gy <= bottom; ++gy) {
             const int64_t dy = gy - cy, remaining = radius2 - dy * dy;
             int64_t half = int64_t(std::sqrt(double(remaining)));
@@ -835,15 +846,21 @@ void draw_circles(uint8_t* pixels, Object& d, uint64_t frame) {
             const int64_t left = std::max(tile_x, cx - half);
             const int64_t right = std::min(tile_x + d.width - 1, cx + half);
             if (left <= right) {
-                auto* row = pixels + size_t(gy - tile_y) * d.width;
-                std::memset(row + (left - tile_x), value, size_t(right - left + 1));
+                auto* row = pixels + (size_t(gy - tile_y) * d.width + size_t(left - tile_x)) * components;
+                if (components == 1) {
+                    std::memset(row, value, size_t(right - left + 1));
+                } else {
+                    for (int64_t x = left; x <= right; ++x, row += 3)
+                        std::memcpy(row, color.data(), 3);
+                }
             }
         }
     }
 }
 void fill(Object& b, Object& d, uint64_t frame) {
     b.width = d.width; b.height = d.height; b.frame = frame;
-    b.filled = size_t(d.width) * d.height;
+    b.pixel_format = d.pixel_format;
+    b.filled = payload_size(d);
     require(b.capacity >= b.filled, GC_ERR_BUFFER_TOO_SMALL, "Image exceeds buffer capacity");
     auto pixels = static_cast<uint8_t*>(b.data);
     auto& scene = *d.scene;
@@ -860,11 +877,12 @@ void fill(Object& b, Object& d, uint64_t frame) {
             source_x[x] = uint32_t(uint64_t(gx) * scene.width / canvas_width);
         }
         for (uint32_t y = 0; y < d.height; ++y) {
-            auto row = pixels + size_t(y) * d.width;
+            auto row = pixels + size_t(y) * d.width * channels(d);
             const uint32_t gy = uint32_t(d.board) * d.height + y;
             const uint32_t sy = uint32_t(uint64_t(gy) * scene.height / canvas_height);
             const auto* source = scene.pixels.data() + size_t(sy) * scene.width;
-            for (uint32_t x = 0; x < d.width; ++x) row[x] = source[source_x[x]];
+            for (uint32_t x = 0; x < d.width; ++x)
+                std::memset(row + size_t(x) * channels(d), source[source_x[x]], channels(d));
         }
         if (d.exposure != 1000.0) {
             const double scale = d.exposure / 1000.0;

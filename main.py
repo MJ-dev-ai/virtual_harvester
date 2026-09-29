@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication
 from config.path import VCTI_PATH
 from device.device_manager import DeviceManager
 from gui.mainwidget import MainWindow
+from gui.settings import SettingsDialog
 
 
 class ApplicationController(QObject):
@@ -22,6 +23,7 @@ class ApplicationController(QObject):
                  real_cti_path=None, preview_fps=30.0):
         super().__init__(window)
         self.window = window
+        self.settings_dialog = SettingsDialog(window)
         self._closing = False
         self._shutdown_complete = False
         self._stopped = False
@@ -41,16 +43,29 @@ class ApplicationController(QObject):
         window.start_requested.connect(self.manager.start_capture, Qt.QueuedConnection)
         window.stop_requested.connect(self.manager.stop_capture, Qt.QueuedConnection)
         window.disconnect_requested.connect(self.manager.disconnect_device, Qt.QueuedConnection)
+        window.open_settings_requested.connect(self.settings_dialog.open)
+        self.settings_dialog.apply_requested.connect(self._settings_apply_started)
+        self.settings_dialog.apply_requested.connect(
+            self.manager.apply_settings, Qt.QueuedConnection,
+        )
+        self.manager.settings_apply_finished.connect(
+            self._settings_apply_finished, Qt.QueuedConnection,
+        )
         self.shutdown_requested.connect(self.manager.shutdown, Qt.QueuedConnection)
 
         self.manager.search_finished.connect(window.on_search_finished)
         self.manager.connect_finished.connect(window.on_connect_finished)
+        self.manager.camera_settings_received.connect(
+            self.settings_dialog.on_camera_settings_received, Qt.QueuedConnection,
+        )
         self.manager.start_finished.connect(window.on_start_finished)
         self.manager.stop_finished.connect(window.on_stop_finished)
         self.manager.disconnect_finished.connect(window.on_disconnect_finished)
+        self.manager.disconnect_finished.connect(self.settings_dialog.on_disconnected)
         self.manager.frame_received.connect(window.on_frame_received)
         self.manager.error_occurred.connect(window.on_error_occurred)
         self.manager.shutdown_finished.connect(window.on_shutdown_finished)
+        self.manager.shutdown_finished.connect(self.settings_dialog.on_disconnected)
         self.manager.shutdown_finished.connect(self._shutdown_finished)
         # quit() is thread-safe. This also permits cleanup if the GUI event
         # loop has already exited (there is no dependency on a GUI callback).
@@ -59,6 +74,18 @@ class ApplicationController(QObject):
         window.installEventFilter(self)
         QApplication.instance().installEventFilter(self)
         self.thread.start()
+
+    @Slot(dict)
+    def _settings_apply_started(self, pending):
+        self.window._settings_applying = True
+        self.window.update_ui_state()
+
+    @Slot(dict)
+    def _settings_apply_finished(self, result):
+        self.window._settings_applying = False
+        self.window.update_ui_state()
+        self.window.append_log("Settings applied." if result["success"] else
+                               f"Settings apply failed: {result['error']}")
 
     def eventFilter(self, watched, event):
         closing_window = watched is self.window and event.type() == QEvent.Close

@@ -7,6 +7,7 @@ from PySide6.QtCore import Signal, Slot, QDateTime, Qt
 from PySide6.QtGui import QImage, QPixmap
 from config.path import UI_PATH, OUTPUT_PATH
 from enum import Enum, auto
+from time import perf_counter
 
 class State(Enum):
     INITIAL = auto()
@@ -23,12 +24,16 @@ class MainWindow(QMainWindow):
     start_requested = Signal()
     stop_requested = Signal()
     disconnect_requested = Signal()
+    open_settings_requested = Signal()
 
     def __init__(self):
         super().__init__()
         self.state = State.INITIAL
         self.framegrabbers = []
         self.fps_lists = []
+        self._gui_frame_count = 0
+        self._gui_fps_started = None
+        self._gui_fps = 0.0
         loader = QUiLoader()
         self.main_widget = loader.load(str(UI_PATH / "mainwidget.ui"), self)
         if self.main_widget is None:
@@ -57,6 +62,7 @@ class MainWindow(QMainWindow):
         self.log_text = self.findChild(QPlainTextEdit, "editLog")
         self.clear_log_btn = self.findChild(QPushButton, "buttonClearLog")
         self.fps_label = self.findChild(QLabel, "labelFps")
+        self.setting_button = self.findChild(QPushButton, "buttonSettings")
     
     def connect_signals(self):
         self.search_device_btn.clicked.connect(self.search_device)
@@ -65,25 +71,33 @@ class MainWindow(QMainWindow):
         self.clear_log_btn.clicked.connect(self.clear_log)
         self.start_capture_btn.clicked.connect(self.start_capture)
         self.stop_capture_btn.clicked.connect(self.stop_capture)
+        self.setting_button.clicked.connect(self.open_settings)
         
     def update_ui_state(self):
         has_cameras = any(fg["cameras"] for fg in self.framegrabbers)
-        self.mode_combo.setEnabled(self.state == State.INITIAL)
+        self.mode_combo.setEnabled(self.state in (State.INITIAL, State.SEARCHED))
         self.search_device_btn.setEnabled(self.state in (State.INITIAL, State.SEARCHED))
         self.connect_device_btn.setEnabled(self.state == State.SEARCHED and has_cameras)
         self.disconnect_device_btn.setEnabled(self.state in (State.CONNECTED, State.ERROR))
         self.start_capture_btn.setEnabled(self.state == State.CONNECTED)
         self.stop_capture_btn.setEnabled(self.state == State.ACQUIRING)
         self.device_state_label.setText(self.state.name)
+        self.setting_button.setEnabled(self.state == State.CONNECTED)
+        if getattr(self, "_settings_applying", False):
+            self.start_capture_btn.setEnabled(False)
+            self.disconnect_device_btn.setEnabled(False)
+            self.setting_button.setEnabled(False)
         if self.state != State.ACQUIRING:
             self.fps_lists = [0.0] * len(self.fps_lists)
-            self.on_fps_updated(0.0)
+            self._gui_frame_count = 0
+            self._gui_fps_started = None
+            self._gui_fps = 0.0
+            self.fps_label.setText("Capture: 0.0 FPS\nGUI: 0.0 FPS")
     
     @Slot()
     def search_device(self):
         self.update_ui_state()
         self.fps_lists = []
-        self.on_fps_updated(0.0)
         for label in self.camera_labels:
             label.clear()
             label.setText("No signal")
@@ -171,8 +185,6 @@ class MainWindow(QMainWindow):
     def start_capture(self):
         self.state = State.STARTING
         self.update_ui_state()
-        self.fps_lists = [0.0] * len(self.fps_lists)
-        self.on_fps_updated(0.0)
         self.start_requested.emit()
 
     @Slot(dict)
@@ -183,6 +195,7 @@ class MainWindow(QMainWindow):
             self.update_ui_state()
             return
         self.state = State.ACQUIRING
+        self._gui_fps_started = perf_counter()
         self.append_log("Capture Started")
         self.update_ui_state()
 
@@ -223,10 +236,6 @@ class MainWindow(QMainWindow):
     def clear_log(self):
         self.log_text.clear()
 
-    @Slot(float)
-    def on_fps_updated(self, fps: float):
-        self.fps_label.setText(f"{fps:.1f} FPS")
-
     @Slot(int, QImage, float)
     def on_frame_received(self, camera_idx: int, frame: QImage, fps: float):
         """Display an owned QImage on camera 0..11 in the GUI thread."""
@@ -240,23 +249,41 @@ class MainWindow(QMainWindow):
         label = self.camera_labels[camera_idx]
         if label is None:
             return
+        now = perf_counter()
         if frame.isNull():
             label.clear()
             self.fps_lists[camera_idx] = 0.0
-            self.on_fps_updated(sum(self.fps_lists) / len(self.fps_lists))
-            return
-        if label.contentsRect().size().isEmpty():
-            return
-        self.fps_lists[camera_idx] = fps
+        else:
+            self.fps_lists[camera_idx] = fps
+            self._gui_frame_count += 1
+
+        # Count valid GUI deliveries, averaged over all connected cameras.
+        # Update here only; no separate FPS timer or callback is needed.
+        if self._gui_fps_started is None:
+            self._gui_fps_started = now
+        elapsed = now - self._gui_fps_started
+        if elapsed >= 1.0:
+            self._gui_fps = self._gui_frame_count / elapsed / len(self.fps_lists)
+            self._gui_frame_count = 0
+            self._gui_fps_started = now
+
         average_fps = sum(self.fps_lists) / len(self.fps_lists)
+        self.fps_label.setText(
+            f"Capture: {average_fps:.1f} FPS\nGUI: {self._gui_fps:.1f} FPS"
+        )
+        if frame.isNull() or label.contentsRect().size().isEmpty():
+            return
         pixmap = QPixmap.fromImage(frame).scaled(
             label.contentsRect().size(),
             Qt.AspectRatioMode.KeepAspectRatio,
             Qt.TransformationMode.SmoothTransformation,
         )
         label.setPixmap(pixmap)
-        self.fps_label.setText(str(average_fps))
     
+    @Slot()
+    def open_settings(self):
+        self.open_settings_requested.emit()
+
     @Slot(str)
     def append_log(self, message: str):
         now = QDateTime.currentDateTime()

@@ -7,6 +7,8 @@ Run with a Python environment containing harvesters, genicam and numpy:
 from pathlib import Path
 import unittest
 
+import numpy as np
+
 from genicam import genapi
 from harvesters.core import Harvester
 
@@ -57,6 +59,30 @@ class SettingsTest(unittest.TestCase):
         finally:
             self.ia.stop()
 
+    def test_rgb24_payload_channels_and_format_switching(self):
+        self.assertEqual(set(self.nm.PixelFormat.symbolics), {'Mono8', 'RGB8'})
+        # Odd width exercises packed RGB rows without implicit four-byte padding.
+        self.nm.Width.value = 321
+        self.nm.Height.value = 241
+        for pixel_format, channels in [('RGB8', 3), ('Mono8', 1), ('RGB8', 3)]:
+            self.nm.PixelFormat.value = pixel_format
+            self.assertEqual(self.nm.PayloadSize.value, 321 * 241 * channels)
+            self.ia.start()
+            try:
+                with self.ia.fetch(timeout=2) as buffer:
+                    component = buffer.payload.components[0]
+                    self.assertEqual(component.data_format, pixel_format)
+                    self.assertEqual(component.x_padding, 0)
+                    self.assertEqual(component.data.size, 321 * 241 * channels)
+                    self.assertEqual(component.data.dtype, np.uint8)
+                    if channels == 3:
+                        pixels = component.data.reshape(241, 321, 3)
+                        # First camera sees the first (red) circle on a black background.
+                        self.assertTrue(np.any(np.all(pixels == (220, 60, 30), axis=2)))
+                        self.assertTrue(np.any(np.all(pixels == (0, 0, 0), axis=2)))
+            finally:
+                self.ia.stop()
+
     def test_configuration_access_tracks_acquisition(self):
         names = ("Width", "Height", "PixelFormat", "AcquisitionMode",
                  "TriggerMode", "TriggerSelector", "TriggerSource",
@@ -101,7 +127,7 @@ class SettingsTest(unittest.TestCase):
     def test_invalid_and_fixed_settings(self):
         for name, value in (("Width", 0), ("Height", 8193),
                             ("ExposureTime", 0.0), ("AcquisitionFrameRate", 1001.0),
-                            ("PixelFormat", "RGB8"), ("TriggerSource", "Line1")):
+                            ("PixelFormat", "BGR8"), ("TriggerSource", "Line1")):
             node = getattr(self.nm, name)
             original = node.value
             with self.assertRaises(genapi.GenericException, msg=name):

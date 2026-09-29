@@ -10,11 +10,21 @@ from PySide6.QtCore import QObject, QThread, QTimer, Qt, Signal, Slot
 from PySide6.QtGui import QImage
 import io
 import logging
-from math import isfinite
+from copy import deepcopy
+from math import isclose, isfinite
 from pathlib import Path
 import numpy as np
 from time import perf_counter
 from harvesters.core import Harvester
+from genicam import genapi
+
+
+SETTINGS_FEATURES = (
+    "ExposureAuto", "ExposureTime", "GainAuto", "Gain",
+    "Width", "Height", "OffsetX", "OffsetY", "PixelFormat", "BalanceWhiteAuto",
+    "AcquisitionFrameRateEnable", "AcquisitionFrameRate",
+    "TriggerMode", "TriggerSelector", "TriggerSource", "TriggerActivation",
+)
 
 class FrameBuffer:
     """Store one camera's frame and lock; frame_number is zero until the first frame."""
@@ -36,8 +46,14 @@ class CameraWorker(Thread):
         node_map = ia.remote_device.node_map
         for name, value in self.settings.items():
             getattr(node_map, name).value = value
+        self.pixel_format = node_map.PixelFormat.value
+        if self.pixel_format not in ("Mono8", "RGB8"):
+            raise ValueError("Only Mono8 and RGB8 images are supported")
+        shape = (int(node_map.Height.value), int(node_map.Width.value))
+        if self.pixel_format == "RGB8":
+            shape += (3,)
         self.frame_buffer = FrameBuffer(
-            shape=(int(node_map.Height.value), int(node_map.Width.value)),
+            shape=shape,
             dtype=np.uint8
         )
         self._start_event = Event()
@@ -46,7 +62,7 @@ class CameraWorker(Thread):
         self.error = None  # Exception from settings, acquisition, or cleanup; None if no error.
 
     def run(self):
-        """Acquire Mono8 frames on request; the manager destroys the image acquirer."""
+        """Acquire Mono8 or interleaved RGB8 frames on request; the manager destroys the image acquirer."""
         try:
             while not self._shutdown_event.is_set():
                 self._start_event.wait()
@@ -76,9 +92,12 @@ class CameraWorker(Thread):
                                 if len(buffer.payload.components) != 1:
                                     raise ValueError("Expected exactly one payload component")
                                 component = buffer.payload.components[0]
-                                if component.data_format != "Mono8" or component.x_padding != 0:
-                                    raise ValueError("Only Mono8 images without row padding are supported")
-                                frame = component.data.reshape(component.height, component.width)
+                                if component.data_format != self.pixel_format or component.x_padding != 0:
+                                    raise ValueError("Unexpected pixel format or unsupported row padding")
+                                shape = (component.height, component.width)
+                                if self.pixel_format == "RGB8":
+                                    shape += (3,)
+                                frame = component.data.reshape(shape)
 
                                 with self.frame_buffer.lock:
                                     if frame.shape != self.frame_buffer.frame.shape:
@@ -123,9 +142,12 @@ class DeviceManager(QObject):
     shutdown_finished = Signal(dict)
     frame_received = Signal(int, QImage, float)
     error_occurred = Signal(dict)
+    camera_settings_received = Signal(dict)
+    settings_apply_finished = Signal(dict)
 
     def __init__(self, virtual_cti_path, real_cti_path=None, preview_fps=30.0):
         super().__init__()
+        self._applying_settings = False
         self._harvester = None
         self._vcti_path = virtual_cti_path
         self._rcti_path = real_cti_path
@@ -239,6 +261,7 @@ class DeviceManager(QObject):
             self._cameras = cameras
             self._frame_buffers = frame_buffers
             self.connect_finished.emit({"success": True, "error": None})
+            self.emit_camera_settings()
         except Exception as e:
             cleanup_errors = []
             for ia in reversed(opened):
@@ -252,9 +275,247 @@ class DeviceManager(QObject):
                 message += "; cleanup failed: " + "; ".join(cleanup_errors)
             self.connect_finished.emit({"success": False, "error": message})
 
+    @staticmethod
+    def _read_setting(node_map, name):
+        """Return plain data only; GenApi objects stay on the worker side."""
+        result = {
+            "supported": False, "available": False, "readable": False,
+            "writable": False, "type": None, "value": None,
+            "min": None, "max": None, "inc": None, "unit": "",
+            "choices": [], "error": None,
+        }
+        try:
+            node = node_map.get_node(name)
+        except genapi.GenericException:
+            return result
+        if node is None:
+            return result
+        try:
+            result["supported"] = genapi.is_implemented(node)
+            result["available"] = genapi.is_available(node)
+            result["readable"] = genapi.is_readable(node)
+            result["writable"] = genapi.is_writable(node)
+            for node_type, kind in ((genapi.IEnumeration, "enum"),
+                                    (genapi.IBoolean, "bool"),
+                                    (genapi.IInteger, "int"),
+                                    (genapi.IFloat, "float")):
+                if isinstance(node, node_type):
+                    result["type"] = kind
+                    break
+            if not result["available"]:
+                return result
+            if result["type"] == "enum":
+                result["choices"] = [entry.symbolic for entry in node.entries
+                                     if genapi.is_available(entry)]
+            if result["readable"]:
+                result["value"] = node.value
+                if result["type"] in ("int", "float"):
+                    result.update(min=node.min, max=node.max, unit=node.unit)
+                    if result["type"] == "int" or node.has_inc():
+                        result["inc"] = node.inc
+        except Exception as error:
+            result["error"] = str(error)
+            result["writable"] = False
+        return result
+
+    @Slot()
+    def emit_camera_settings(self):
+        """Publish settings grouped by vendor/model, keeping each camera's values."""
+        try:
+            if QThread.currentThread() != self.thread():
+                raise RuntimeError("Request settings through a queued signal")
+            groups = {}
+            for (board_id, camera_id), camera in self._cameras.items():
+                node_map = camera._ia.remote_device.node_map
+                identity = []
+                for name in ("DeviceVendorName", "DeviceModelName"):
+                    try:
+                        identity.append(str(getattr(node_map, name).value))
+                    except genapi.GenericException:
+                        identity.append("")
+                vendor, model = identity
+                # Do not combine unidentified cameras into an invented model.
+                key = (vendor, model) if vendor and model else (board_id, camera_id)
+                group = groups.setdefault(key, {
+                    "vendor": vendor, "model": model, "cameras": [],
+                })
+                group["cameras"].append({
+                    "framegrabber_id": board_id,
+                    "camera_id": camera_id,
+                    "settings": {name: self._read_setting(node_map, name)
+                                 for name in SETTINGS_FEATURES},
+                })
+            for group in groups.values():
+                group["settings"] = {
+                    name: self._common_setting([
+                        camera["settings"][name] for camera in group["cameras"]
+                    ]) for name in SETTINGS_FEATURES
+                }
+            self.camera_settings_received.emit({
+                "success": True, "error": None, "groups": list(groups.values()),
+            })
+        except Exception as error:
+            self.camera_settings_received.emit({
+                "success": False, "error": str(error), "groups": [],
+            })
+
+    @staticmethod
+    def _common_setting(features):
+        """Describe the values that can safely be offered to the whole model group."""
+        result = deepcopy(features[0])
+        for flag in ("supported", "available", "readable", "writable"):
+            result[flag] = all(feature[flag] for feature in features)
+        result["mixed"] = any(f["value"] != result["value"] for f in features)
+        if result["mixed"] or not result["readable"]:
+            result["value"] = None
+        errors = list(dict.fromkeys(f["error"] for f in features if f["error"]))
+        result["error"] = "; ".join(errors) or None
+        if errors:
+            result["writable"] = False
+            return result
+        if not result["supported"] or not result["available"]:
+            result["writable"] = False
+            return result
+        if any(f["type"] != result["type"] or f["unit"] != result["unit"] for f in features):
+            result.update(writable=False, error="Camera feature types or units differ")
+        elif result["type"] == "enum":
+            result["choices"] = [choice for choice in result["choices"]
+                                 if all(choice in f["choices"] for f in features)]
+            result["writable"] &= bool(result["choices"])
+        elif result["type"] in ("int", "float") and result["readable"]:
+            result["min"] = max(f["min"] for f in features)
+            result["max"] = min(f["max"] for f in features)
+            if result["min"] > result["max"]:
+                result.update(writable=False, error="No common numeric range")
+                return result
+            # Equal bounds alone do not guarantee compatible stepped values.
+            # Keep incompatible grids read-only instead of offering invalid edits.
+            step = result["inc"]
+            if any(f["inc"] != step for f in features):
+                result.update(writable=False, error="Camera increments differ")
+            elif step:
+                if result["type"] == "int":
+                    if any((result["min"] - f["min"]) % step for f in features):
+                        result.update(writable=False, error="Camera increment origins differ")
+                    else:
+                        result["max"] -= (result["max"] - result["min"]) % step
+                elif any(not isclose((result["min"] - f["min"]) / step,
+                                   round((result["min"] - f["min"]) / step),
+                                   rel_tol=0, abs_tol=1e-7) for f in features):
+                    result.update(writable=False, error="Camera increment origins differ")
+                else:
+                    result["max"] = result["min"] + int(
+                        (result["max"] - result["min"]) / step + 1e-9
+                    ) * step
+        return result
+
+    @Slot(dict)
+    def apply_settings(self, pending_settings):
+        """Apply GenApi values with acquisition stopped; always publish actual values.
+
+        Writes are not transactional: if a camera rejects a value, preceding
+        writes remain applied and the refreshed snapshot reflects that state.
+        Queued manager operations run only after this slot returns.
+        """
+        if QThread.currentThread() != self.thread():
+            raise RuntimeError("Apply settings through a queued signal")
+        if self._applying_settings:
+            return
+        self._applying_settings = True
+        resume = self._process_timer.isActive()
+        stopped = False
+        pause_requested = False
+        errors = []
+        try:
+            if not self._cameras:
+                raise ValueError("Connect cameras before applying settings")
+            targets = {}
+            for group in pending_settings["groups"]:
+                values = group["settings"]
+                if set(values) - set(SETTINGS_FEATURES):
+                    raise ValueError("Unknown camera setting name")
+                if "PixelFormat" in values and values["PixelFormat"] not in ("Mono8", "RGB8"):
+                    raise ValueError("The current image pipeline supports only Mono8 and RGB8")
+                for target in group["cameras"]:
+                    key = (target["framegrabber_id"], target["camera_id"])
+                    if key not in self._cameras or key in targets:
+                        raise ValueError(f"Invalid or duplicate camera target: {key}")
+                    targets[key] = values
+            if not targets:
+                return
+            pause_requested = True
+            self._process_timer.stop()
+            # Joining removes the stop/start race and ensures TLParamsLocked
+            # has been released before any GenApi writes or buffer changes.
+            for camera in self._cameras.values():
+                camera.shutdown()
+            deadline = perf_counter() + 2.0
+            for camera in self._cameras.values():
+                if camera.ident is not None:
+                    camera.join(max(0.0, deadline - perf_counter()))
+                if camera.is_alive():
+                    raise RuntimeError("Camera did not stop before settings timeout; disconnect and reconnect")
+            stopped = True
+            for camera in self._cameras.values():
+                if camera.error is not None:
+                    raise RuntimeError(str(camera.error))
+            # Selectors and automatic-mode controls precede dependent values.
+            order = ("ExposureAuto", "GainAuto", "BalanceWhiteAuto",
+                     "AcquisitionFrameRateEnable", "TriggerSelector", "TriggerMode",
+                     "TriggerSource", "TriggerActivation", "PixelFormat",
+                     "OffsetX", "OffsetY", "Width", "Height", "ExposureTime",
+                     "Gain", "AcquisitionFrameRate")
+            for key, values in targets.items():
+                nm = self._cameras[key]._ia.remote_device.node_map
+                for name in order:
+                    if name not in values:
+                        continue
+                    meta = self._read_setting(nm, name)
+                    value = values[name]
+                    if not meta["writable"] or meta["error"]:
+                        raise ValueError(f"{key}: {name} is not writable")
+                    if meta["type"] == "enum" and value not in meta["choices"]:
+                        raise ValueError(f"{key}: invalid {name} symbol: {value}")
+                    if meta["type"] == "bool" and type(value) is not bool:
+                        raise ValueError(f"{key}: {name} requires a boolean")
+                    if meta["type"] in ("int", "float"):
+                        if (type(value) not in (int, float) or not isfinite(value)
+                                or not meta["min"] <= value <= meta["max"]):
+                            raise ValueError(f"{key}: {name} is outside its current range")
+                        if meta["type"] == "int" and int(value) != value:
+                            raise ValueError(f"{key}: {name} requires an integer")
+                    try:
+                        nm.get_node(name).value = value
+                    except Exception as error:
+                        raise RuntimeError(f"{key}: {name}: {error}") from error
+        except Exception as error:
+            errors.append(str(error))
+        finally:
+            if stopped:
+                # Rebuild even after partial failure, using actual camera sizes.
+                for key, camera in list(self._cameras.items()):
+                    try:
+                        replacement = CameraWorker(camera._ia)
+                        self._cameras[key] = replacement
+                        self._frame_buffers[key] = replacement.frame_buffer
+                        self._previous_frame_info[key] = (0, perf_counter())
+                    except Exception as error:
+                        errors.append(f"{key}: buffer update failed: {error}")
+            self._applying_settings = False
+            self.emit_camera_settings()
+            if resume and stopped and not errors:
+                self.start_capture()
+            elif resume and pause_requested and errors:
+                self.error_occurred.emit({"success": False, "error": "; ".join(errors)})
+            self.settings_apply_finished.emit({
+                "success": not errors, "error": "; ".join(errors) or None,
+            })
+
     @Slot()
     def start_capture(self):
         """Request acquisition on each camera worker."""
+        if self._applying_settings:
+            return
         started = []
         try:
             if QThread.currentThread() != self.thread():
@@ -329,13 +590,14 @@ class DeviceManager(QObject):
                 
 
                         frame = frame_buffer.frame
-                        height, width = frame.shape
+                        height, width = frame.shape[:2]
 
                         image = QImage(
                             frame.data,
                             width, height,
                             frame.strides[0],
-                            QImage.Format.Format_Grayscale8,
+                            (QImage.Format.Format_RGB888 if camera.pixel_format == "RGB8"
+                             else QImage.Format.Format_Grayscale8),
                         )
                         if width > 640 or height > 480:
                             image = image.scaled(
@@ -396,6 +658,8 @@ class DeviceManager(QObject):
     @Slot()
     def disconnect_device(self):
         """Release cameras and report the result."""
+        if self._applying_settings:
+            return
         try:
             self._release_cameras()
         except Exception as error:
