@@ -154,7 +154,7 @@ class MainWindow(QMainWindow):
         self.fps_lists = []
         for label in self.camera_labels:
             label.clear()
-            label.setText("No signal")
+            label.setText("No Signal")
         self.search_requested.emit({"virtual": self.mode_combo.currentIndex() == 0})
     
     @Slot(dict)
@@ -292,9 +292,7 @@ class MainWindow(QMainWindow):
 
     @Slot(dict)
     def on_preview_layout_changed(self, result):
-        # Crop affects image pixels only, never label size or placement.
-        for label in self.camera_labels:
-            label.clear()
+        # Metadata changes must not clear the last displayed frame.
         if not result["success"]:
             self.append_log(f"Overlap preview: {result['error']}")
 
@@ -313,7 +311,7 @@ class MainWindow(QMainWindow):
             return
         now = perf_counter()
         if frame.isNull():
-            label.clear()
+            label.setText("No Signal")
             self.fps_lists[camera_idx] = 0.0
         else:
             self.fps_lists[camera_idx] = fps

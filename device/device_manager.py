@@ -436,7 +436,7 @@ class DeviceManager(QObject):
         return self._preview_geometry_cache[size]
 
     @Slot(bool)
-    def set_preview_overlap(self, enabled):
+    def set_preview_overlap(self, enabled, refresh_frames=True):
         """Change preview only; the acquisition buffers remain untouched."""
         if QThread.currentThread() != self.thread():
             raise RuntimeError("Change preview overlap through a queued signal")
@@ -466,7 +466,7 @@ class DeviceManager(QObject):
             self._preview_rois = {}
             self.preview_layout_changed.emit({"success": False, "enabled": False,
                                               "tiles": [], "error": str(error)})
-        if self._cameras:
+        if refresh_frames and self._cameras:
             self._process_frames(force=True)
 
     @Slot(dict)
@@ -562,7 +562,8 @@ class DeviceManager(QObject):
                     except Exception as error:
                         errors.append(f"{key}: buffer update failed: {error}")
             self._applying_settings = False
-            self.set_preview_overlap(self._preview_overlap)
+            # Refresh ROI metadata only; Apply must not replace the displayed frame.
+            self.set_preview_overlap(self._preview_overlap, refresh_frames=False)
             self.emit_camera_settings()
             if resume and stopped and not errors:
                 self.start_capture()
